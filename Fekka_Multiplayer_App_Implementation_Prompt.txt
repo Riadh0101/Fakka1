@@ -1,0 +1,270 @@
+================================================================================
+FEKKA (SCHKOBBA 40) - MULTIPLAYER MOBILE APP IMPLEMENTATION PROMPT
+WhatsApp-Invite Room System | Flutter + NestJS + Redis + Socket.IO
+================================================================================
+
+ROLE: Expert Full-Stack Game Developer & Real-Time Systems Architect.
+
+OBJECTIVE:
+Build a complete, production-ready multiplayer implementation of the Tunisian
+card game "Fekka" (Schkobba 40 variant), where one player (the Admin) creates
+a game room and invites 3 other players via a shareable link sent through
+WhatsApp (or any messaging app via the native share sheet). All 4 players
+play in real time on their own phones.
+
+This prompt covers BOTH the backend (NestJS) and frontend (Flutter) required
+to deliver this end-to-end flow, building on the core game logic rules below.
+
+--------------------------------------------------------------------------------
+PART 1 - CORE GAME LOGIC (PORT TO DART + IMPLEMENT IN NESTJS AS AUTHORITY)
+--------------------------------------------------------------------------------
+
+The authoritative game logic MUST live server-side (NestJS) to prevent
+cheating. The Flutter client is a thin presentation layer that sends moves
+and renders state pushed from the server.
+
+1. DECK & SETUP
+   - 40-card Italian-style deck: ranks 1-7, J, Q, K, in 4 suits
+     (10 cards per suit).
+   - 4 players per game.
+   - Each round: deal 3 cards to each player (12 cards), 4 cards to the
+     Middle Pool. Remaining 24 cards stay in the deck for redeals.
+
+2. MATCHING
+   - Cards match by rank only (J matches J, Q matches Q, 7 matches 7, etc.)
+   - No numeric equivalence between face cards and numbers.
+
+3. MIDDLE POOL (LIFO STACK)
+   - If a played card matches the top of the Middle Pool, capture it.
+   - SEQUENTIAL REVEAL: after capturing the top card, check the newly
+     exposed top card. If it ALSO matches the played card's rank, capture
+     it too. Continue cascading while matches hold; stop at first
+     non-match or empty pool.
+
+4. PLAYER STACK "STEAL" (FEKKA)
+   - Each player has one private LIFO stack; only top card visible to
+     others.
+   - If a played card matches the top of another player's stack, the
+     active player steals that ENTIRE stack into their own.
+
+5. COMBINED CAPTURE PRIORITY
+   - Steal and Pool capture are NOT mutually exclusive. If the played card
+     matches BOTH the Middle Pool top (triggering sequential reveal cascade)
+     AND one or more other players' stack tops, ALL matches resolve in the
+     same turn. Everything captured merges into the active player's private
+     stack in one move.
+   - If no match exists anywhere, the played card is placed on top of the
+     Middle Pool (discard).
+
+6. ROUND STRUCTURE
+   - Round = each of the 4 players plays all 3 cards from hand (12 plays
+     total, in turn order).
+   - At round end (all hands empty), tally scores from each player's
+     private stack contents.
+   - Redeal 3 new cards per player from the remaining deck. Middle Pool
+     persists across rounds (not reset). Continue until the 24-card
+     reserve is exhausted, then reshuffle remaining cards to keep playing
+     until someone reaches 51.
+
+7. SCORING
+   - Tallied at end of each round only.
+   - Regular cards (1-7) = 1 point. Face cards (J, Q, K) = 2 points.
+   - Score = sum of point values of cards in player's private stack at
+     round-end. Cumulative across rounds.
+
+8. WINNING & ELIMINATION
+   - Threshold: 51 cumulative points.
+   - When a player reaches >= 51 at round end, assign next available rank
+     (1 = first to reach 51 ... down to worst) and remove them from active
+     play.
+   - Continue with remaining players, adjusting dealing/turn order for
+     N-1, N-2, N-3 players.
+   - Last remaining player gets the final (worst) rank automatically.
+
+--------------------------------------------------------------------------------
+PART 2 - BACKEND: NESTJS GAME SERVER
+--------------------------------------------------------------------------------
+
+ARCHITECTURE
+   - NestJS application with a dedicated "Fekka" module.
+   - Real-time communication via Socket.IO (NestJS WebSocket Gateway).
+   - Redis as the source of truth for active game room state (fast LIFO
+     stack ops via Redis Lists; short TTL for abandoned rooms).
+   - PostgreSQL for persistent data: user accounts (optional/anonymous
+     allowed), match history, final rankings/leaderboards.
+
+REQUIRED MODULES / CLASSES
+   - GameRoomService: create room, generate unique room_id (short,
+     shareable, e.g. 6-char alphanumeric code), manage room lifecycle
+     (waiting -> in_progress -> finished -> expired).
+   - GameEngineService: pure game logic (Deck, Card, MiddlePool,
+     PlayerStack, capture/steal/sequential-reveal algorithm, scoring,
+     elimination/ranking) - framework-agnostic, fully unit-testable,
+     same rules as Part 1.
+   - FekkaGateway (WebSocket Gateway): handles socket connections per
+     room namespace, validates moves come from the correct player on
+     their turn, broadcasts state updates to all 4 clients.
+   - RoomRedisRepository: read/write room state (players, seats, deck,
+     pool, stacks, scores, turn index, round number) as Redis hashes/lists.
+
+ROOM CREATION & INVITE FLOW (ADMIN SIDE)
+   - Endpoint: POST /games/create
+       - Input: admin display name (and optional auth token if logged in).
+       - Output: { room_id, admin_player_id, invite_link }.
+   - invite_link format: https://<your-domain>/join/{room_id}
+       (this URL must resolve via Android App Links / iOS Universal Links
+       to open the Flutter app directly at the Join screen; falls back to
+       a simple web landing page with store links + room_id if app not
+       installed).
+   - Room starts in "waiting" state with 1/4 seats filled (admin).
+
+JOIN FLOW (OTHER 3 PLAYERS)
+   - Endpoint: POST /games/{room_id}/join
+       - Input: display name.
+       - Output: { player_id, seat_index, room_state }.
+   - Validates room exists, is in "waiting" state, and has an open seat
+     (max 4). Rejects if room full, started, or expired.
+   - On successful join, broadcast "player_joined" event to all connected
+     sockets in the room so the admin's lobby screen updates live.
+
+GAME START
+   - Only the admin can trigger POST /games/{room_id}/start.
+   - Requires exactly 4/4 seats filled.
+   - Server shuffles deck, deals initial hands + middle pool, sets turn
+     order (e.g., seat order), and broadcasts "game_started" with full
+     initial state to all clients.
+
+GAMEPLAY EVENTS (SOCKET.IO, namespaced per room_id)
+   - Client -> Server:
+       - "play_card" { player_id, card }
+   - Server -> Clients:
+       - "state_update" (full or diff game state: pool, stacks tops,
+         hands - each player only sees their OWN hand cards, plus
+         others' stack tops and remaining hand counts)
+       - "capture_event" (animation trigger data: which cards were
+         captured, sequential reveal chain, stolen stacks, for client
+         animations)
+       - "round_end" (scores tallied, updated cumulative totals)
+       - "player_eliminated" (rank assigned, player removed from active
+         play, remaining players notified)
+       - "game_over" (final rankings for all 4 players)
+       - "error" (invalid move, not your turn, room full, etc.)
+
+RECONNECTION HANDLING
+   - Each player gets a persistent player_id + room_id stored client-side
+     (secure local storage). On reconnect, client re-emits "rejoin" with
+     these IDs; server validates against Redis room state and re-syncs
+     full current state to that socket.
+
+ROOM EXPIRY / CLEANUP
+   - Rooms in "waiting" state expire after a configurable timeout
+     (e.g., 10 minutes) if not started - Redis TTL handles automatic
+     cleanup.
+   - "in_progress" rooms persist until "finished", then archived to
+     PostgreSQL (final rankings + summary) and removed from Redis.
+
+--------------------------------------------------------------------------------
+PART 3 - FRONTEND: FLUTTER APP
+--------------------------------------------------------------------------------
+
+TECH STACK
+   - Flutter 3.x, Dart 3.x.
+   - State management: Riverpod (preferred) or Bloc - pick one and use
+     consistently across the app.
+   - Real-time: socket_io_client package for Socket.IO connection.
+   - Deep linking: Android App Links + iOS Universal Links (configure
+     assetlinks.json / apple-app-site-association on your domain).
+   - Sharing: share_plus package to open the native share sheet
+     (WhatsApp appears as one of the share targets automatically - no
+     WhatsApp-specific SDK integration needed).
+   - Local persistence: shared_preferences (store player_id/room_id for
+     reconnection).
+
+SCREENS REQUIRED
+   1. Home Screen
+        - "Create Game" button (admin flow).
+        - "Join Game" button (manual room code entry, fallback to deep
+          link flow).
+
+   2. Lobby Screen (Admin & Joiners)
+        - Shows room code prominently + "Share Invite" button (uses
+          share_plus to open share sheet pre-filled with a friendly
+          message + invite link, e.g.:
+          "Join my Fekka game! Tap to play: https://yourapp.com/join/ABC123").
+        - Live list of joined players (real-time via socket "player_joined"
+          events) showing 4 seat slots, filled/empty status.
+        - Admin sees "Start Game" button, enabled only when 4/4 filled.
+        - Non-admin players see "Waiting for host to start..." state.
+
+   3. Join Screen (opened via deep link or manual code entry)
+        - Pre-fills room_id if opened via deep link.
+        - Prompts for display name.
+        - On submit, calls join endpoint and navigates to Lobby.
+
+   4. Game Table Screen (core gameplay)
+        - Visual layout: 4 player positions around a table (bottom = you,
+          others positioned around).
+        - Center: Middle Pool stack (show top card; animate cascade reveal
+          on captures).
+        - Each opponent position: shows their stack top card (face up,
+          visible) + remaining hand count (face down card backs).
+        - Your position: shows your 3 (or fewer) hand cards, playable by
+          tap.
+        - Turn indicator (highlight active player).
+        - Animations for: card play, pool capture + sequential reveal
+          cascade, stack steal (cards flying from opponent's stack to
+          yours), round-end score popup.
+
+   5. Round/Score Summary Screen
+        - Shown after each round: per-player points this round + running
+          totals, countdown to next round / redeal.
+
+   6. Elimination / Game Over Screen
+        - Shown when a player crosses 51 (their personal "you're ranked
+          #X, game continues" screen) and shown to all players at full
+          game end with final 1-4 rankings.
+
+--------------------------------------------------------------------------------
+PART 4 - DEEP LINKING SETUP (REQUIRED FOR WHATSAPP INVITE)
+--------------------------------------------------------------------------------
+
+   - Domain required (e.g., fekka-game.com) to host:
+       - /.well-known/assetlinks.json (Android App Links verification)
+       - /.well-known/apple-app-site-association (iOS Universal Links)
+   - Link format: https://fekka-game.com/join/{room_id}
+   - Behavior:
+       - If app installed: opens directly to Join Screen with room_id
+         pre-filled.
+       - If app NOT installed: link opens a simple responsive web page
+         (can be a lightweight static page) showing "Get Fekka" with
+         App Store / Play Store buttons, and instructions to open the
+         link again after installing (room_id preserved in URL).
+   - NestJS can serve this fallback page from a simple route, or host it
+     as a static page alongside the API.
+
+--------------------------------------------------------------------------------
+PART 5 - OUTPUT REQUIREMENTS
+--------------------------------------------------------------------------------
+
+   1. Complete NestJS backend project structure with all modules, services,
+      gateway, Redis integration, and REST endpoints described above.
+   2. Game engine logic (GameEngineService) fully implemented per Part 1
+      rules, framework-agnostic and unit-tested (capture priority,
+      sequential reveal cascade, steal, scoring, elimination/ranking).
+   3. Complete Flutter project structure with all screens listed in Part 3,
+      Riverpod (or Bloc) state management wired to Socket.IO events.
+   4. Deep link configuration files/instructions for both Android and iOS.
+   5. Share-to-WhatsApp implementation using share_plus with example
+      invite message format.
+   6. Clear inline comments explaining:
+        - The Sequential Reveal cascade algorithm.
+        - The combined capture (steal + pool) merge logic.
+        - The room lifecycle state machine (waiting -> in_progress ->
+          finished -> expired).
+   7. A short README describing how to run the backend (Redis + Postgres +
+      NestJS) and the Flutter app locally for end-to-end testing of the
+      full create -> invite -> join -> play -> finish flow.
+
+================================================================================
+END OF PROMPT
+================================================================================

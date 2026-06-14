@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Node / NestJS
+node_modules/
+dist/
+.env
+.env.local
+*.db
+
+# Flutter / Dart
+.dart_tool/
+.packages
+build/
+*.iml
+.idea/
+.fvm/
+*.g.dart
+*.freezed.dart
+
+# Android
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+.gradle/
+local.properties
+GeneratedPluginRegistrant.java
+
+# iOS
+Pods/
+*.xcworkspace
+*.xcuserdata
+
+# IDE
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# OpenCode
+.opencode/

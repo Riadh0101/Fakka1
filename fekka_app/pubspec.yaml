@@ -1,0 +1,29 @@
+name: fekka_app
+description: Fekka (Schkobba 40) Multiplayer Card Game
+version: 1.0.0
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.4.0
+  socket_io_client: ^2.0.0
+  share_plus: ^7.0.0
+  http: ^1.1.0
+  shared_preferences: ^2.2.0
+  uuid: ^4.0.0
+
+dependency_overrides:
+  share_plus: ^13.1.0
+  share_plus_platform_interface: ^7.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
