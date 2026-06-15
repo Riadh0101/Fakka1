@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// MatchHistory — TypeORM entity for PostgreSQL
+// MatchHistory — TypeORM entity (SQLite / PostgreSQL compatible)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import {
@@ -23,15 +23,15 @@ export class MatchHistory {
   @Column({ type: 'varchar', length: 10 })
   roomId: string;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'datetime' })
   playedAt: Date;
 
   @Column({ type: 'integer' })
   totalRounds: number;
 
-  @Column({ type: 'jsonb' })
+  @Column({ type: 'simple-json' })
   rankings: PlayerRanking[];
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'datetime' })
   createdAt: Date;
 }

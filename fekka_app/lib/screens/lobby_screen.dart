@@ -244,9 +244,8 @@ class LobbyScreen extends ConsumerWidget {
   void _shareInvite(String? roomId) {
     if (roomId == null) return;
     final url = 'https://${AppConfig.deepLinkHost}/join/$roomId';
-    Share.share(
-      'Join my Fekka game! Tap to play: $url',
-      subject: 'Fekka Game Invite',
+    SharePlus.instance.share(
+      ShareParams(text: 'Join my Fakka game! Tap to play: $url'),
     );
   }
 }

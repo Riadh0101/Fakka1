@@ -16,7 +16,7 @@ void main() async {
 
   runApp(
     const ProviderScope(
-      child: FekkaApp(),
+      child: FakkaApp(),
     ),
   );
 }

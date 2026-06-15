@@ -1,4 +1,4 @@
-/// Represents a single playing card in the Fekka deck.
+/// Represents a single playing card in the Fakka deck.
 ///
 /// The deck is a standard 52-card deck. Only ranks 1 (Ace) through 7
 /// plus 10 (King), 11 (Queen), 12 (Jack) are used in Schkobba 40.

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/game_state.dart';
 import '../providers/game_provider.dart';
+import '../build_info.dart';
 import 'lobby_screen.dart';
 import 'join_screen.dart';
 import 'game_table_screen.dart';
@@ -113,7 +114,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const SizedBox(height: 40),
                   // Logo
                   Text(
-                    'Fekka',
+                    'Fakka',
                     style: TextStyle(
                       fontSize: 56,
                       fontWeight: FontWeight.w900,
@@ -125,6 +126,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  // Build version circle
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(BuildInfo.colors[(BuildInfo.number - 1) % 3]),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${BuildInfo.number}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
                   const SizedBox(height: 8),
                   const Text(
                     'Schkobba 40',

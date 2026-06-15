@@ -1,4 +1,4 @@
-package com.example.fekka_app
+package com.fekka.game
 
 import io.flutter.embedding.android.FlutterActivity
 

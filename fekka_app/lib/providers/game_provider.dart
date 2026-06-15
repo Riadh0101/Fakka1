@@ -57,14 +57,13 @@ class GameNotifier extends StateNotifier<GameState> {
     try {
       final result = await _api.createRoom(playerName);
       final roomId = result['roomId'] as String;
-      final playerId = result['playerId'] as String;
-      final seatIndex = result['seatIndex'] as int? ?? 0;
+      final playerId = result['adminPlayerId'] as String;
 
       state = state.copyWith(
         roomId: roomId,
         playerId: playerId,
         playerName: playerName,
-        seatIndex: seatIndex,
+        seatIndex: 0,
         roomStatus: 'waiting',
       );
 

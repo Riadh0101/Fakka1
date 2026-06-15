@@ -56,54 +56,69 @@ export class FekkaGateway implements OnGatewayConnection, OnGatewayDisconnect {
         playerId?: string;
       };
 
-      if (!roomId || !playerId) {
-        this.logger.warn(`Connection rejected: missing roomId or playerId`);
-        client.emit('error', { message: 'Missing roomId or playerId', code: 'AUTH_REQUIRED' });
-        client.disconnect();
-        return;
-      }
+      // If query params are provided, perform early joining.
+      if (roomId && playerId) {
+        // Validate room exists.
+        const meta = await this.repo.getMeta(roomId);
+        if (!meta) {
+          client.emit('error', { message: 'Room not found', code: 'ROOM_NOT_FOUND' });
+          client.disconnect();
+          return;
+        }
 
-      // Validate room exists.
-      const meta = await this.repo.getMeta(roomId);
-      if (!meta) {
-        client.emit('error', { message: 'Room not found', code: 'ROOM_NOT_FOUND' });
-        client.disconnect();
-        return;
-      }
+        // Check if player is in this room.
+        const playerIds = await this.repo.getPlayerIds(roomId);
+        if (!playerIds.includes(playerId)) {
+          client.emit('error', { message: 'Player not in this room', code: 'NOT_IN_ROOM' });
+          client.disconnect();
+          return;
+        }
 
-      // Check if player is in this room.
-      const playerIds = await this.repo.getPlayerIds(roomId);
-      if (!playerIds.includes(playerId)) {
-        client.emit('error', { message: 'Player not in this room', code: 'NOT_IN_ROOM' });
-        client.disconnect();
-        return;
-      }
+        // Join the Socket.IO room.
+        client.join(roomId);
+        client.data = { roomId, playerId };
 
-      // Join the Socket.IO room.
-      client.join(roomId);
-      client.data = { roomId, playerId };
+        // Cancel any pending disconnect timer for this player.
+        const timerKey = `${roomId}:${playerId}`;
+        const timer = disconnectTimers.get(timerKey);
+        if (timer) {
+          clearTimeout(timer);
+          disconnectTimers.delete(timerKey);
+        }
 
-      // Cancel any pending disconnect timer for this player.
-      const timerKey = `${roomId}:${playerId}`;
-      const timer = disconnectTimers.get(timerKey);
-      if (timer) {
-        clearTimeout(timer);
-        disconnectTimers.delete(timerKey);
-      }
+        // Mark player as connected.
+        await this.repo.setPlayerConnected(roomId, playerId, true);
 
-      // Mark player as connected.
-      await this.repo.setPlayerConnected(roomId, playerId, true);
+        this.logger.log(`Client connected: player=${playerId}, room=${roomId}`);
 
-      this.logger.log(`Client connected: player=${playerId}, room=${roomId}`);
+        // If game is in progress, send state sync.
+        if (meta.status === 'in_progress') {
+          const state = await this.repo.loadGameState(roomId);
+          if (state) {
+            const sanitized = this.engine.sanitizeForPlayer(state, playerId);
+            client.emit('state_sync', sanitized);
+          }
+        }
 
-      // If game is in progress, send state sync.
-      if (meta.status === 'in_progress') {
-        const state = await this.repo.loadGameState(roomId);
-        if (state) {
-          const sanitized = this.engine.sanitizeForPlayer(state, playerId);
-          client.emit('state_sync', sanitized);
+        // Send player_joined event to room (for lobby display).
+        const playerData = await this.repo.getPlayerData(roomId, playerId);
+        if (playerData) {
+          this.server.to(roomId).emit('player_joined', {
+            players: (await Promise.all(
+              (await this.repo.getPlayerIds(roomId)).map(async (pid: string) => {
+                const pd = await this.repo.getPlayerData(roomId, pid);
+                return {
+                  playerId: pid,
+                  name: pd?.name ?? 'Unknown',
+                  seatIndex: parseInt(pd?.seatIndex ?? '0', 10),
+                  isConnected: pd?.connected === 'true',
+                };
+              })
+            )),
+          });
         }
       }
+      // If no query params, the client will send a 'rejoin' event to join.
     } catch (error) {
       this.logger.error(`Connection error: ${(error as Error).message}`);
       client.emit('error', { message: 'Internal connection error', code: 'INTERNAL' });

@@ -1,34 +1,41 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../config.dart';
 
 /// Thin REST client for room-management endpoints on the NestJS backend.
-///
-/// Socket.IO is used for all real-time game communication;
-/// this service only handles room lifecycle (create / join / start).
 class ApiService {
   final http.Client _client = http.Client();
   final String _baseUrl = AppConfig.apiUrl;
 
   /// POST /games/create
-  ///
-  /// Creates a new game room. Returns the created room data.
-  /// Expected response: `{ roomId, playerId, adminPlayerId, ... }`
-  Future<Map<String, dynamic>> createRoom(String playerName) async {
+  Future<Map<String, dynamic>> createRoom(String adminName) async {
     final uri = Uri.parse('$_baseUrl/games/create');
-    final response = await _client.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'playerName': playerName}),
-    );
+    developer.log('🌐 POST $uri', name: 'API');
+    try {
+      final response = await _client.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'adminName': adminName}),
+      ).timeout(const Duration(seconds: 10));
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
+      developer.log('📥 Response: ${response.statusCode} ${response.body}', name: 'API');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
+
+      final error = _extractError(response);
+      throw ApiException('Failed to create room: $error',
+          statusCode: response.statusCode);
+    } catch (e) {
+      developer.log('❌ Error: $e', name: 'API');
+      if (e is SocketException) {
+        throw ApiException('Cannot connect to game server. Make sure the server is running.');
+      }
+      rethrow;
     }
-
-    final error = _extractError(response);
-    throw ApiException('Failed to create room: $error',
-        statusCode: response.statusCode);
   }
 
   /// POST /games/:roomId/join
@@ -66,7 +73,7 @@ class ApiService {
     final response = await _client.post(
       uri,
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'playerId': playerId}),
+      body: jsonEncode({'adminPlayerId': playerId}),
     );
 
     if (response.statusCode == 200) {

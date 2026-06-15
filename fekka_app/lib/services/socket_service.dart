@@ -58,11 +58,12 @@ class SocketService {
     await _persistSession(roomId, playerId);
 
     _socket = io.io(
-      serverUrl,
+      '$serverUrl/game',
       io.OptionBuilder()
           .setTransports(['websocket'])
           .enableAutoConnect()
           .disableForceNew()
+          .setQuery({'roomId': roomId, 'playerId': playerId})
           .setReconnectionDelay(1000)
           .setReconnectionDelayMax(5000)
           .setTimeout(10000)
@@ -84,11 +85,12 @@ class SocketService {
     _wasManuallyDisconnected = false;
 
     _socket = io.io(
-      serverUrl,
+      '$serverUrl/game',
       io.OptionBuilder()
           .setTransports(['websocket'])
           .enableAutoConnect()
           .disableForceNew()
+          .setQuery({'roomId': _roomId!, 'playerId': _playerId!})
           .setReconnectionDelay(1000)
           .setReconnectionDelayMax(5000)
           .build(),

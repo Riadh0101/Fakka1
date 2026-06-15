@@ -11,13 +11,13 @@ import 'screens/game_over_screen.dart';
 ///
 /// Deep links matching `/join/{roomId}` on platform `fekka-game.com` or
 /// custom scheme `fekka://` are parsed and forwarded as route arguments.
-class FekkaApp extends ConsumerWidget {
-  const FekkaApp({super.key});
+class FakkaApp extends ConsumerWidget {
+  const FakkaApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
-      title: 'Fekka',
+      title: 'Fakka',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,

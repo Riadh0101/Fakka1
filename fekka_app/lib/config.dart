@@ -1,4 +1,4 @@
-/// Central configuration for the Fekka app.
+/// Central configuration for the Fakka app.
 ///
 /// All API and Socket URLs are derived from [baseUrl].
 /// Change [baseUrl] to point at a different server environment.
@@ -7,7 +7,7 @@ class AppConfig {
   /// Defaults to localhost for development.
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:3000',
+    defaultValue: 'http://192.168.137.1:3000',
   );
 
   /// REST API base URL.
