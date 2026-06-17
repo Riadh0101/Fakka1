@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -243,10 +244,40 @@ class LobbyScreen extends ConsumerWidget {
 
   void _shareInvite(String? roomId) {
     if (roomId == null) return;
-    final url = 'https://${AppConfig.deepLinkHost}/join/$roomId';
-    SharePlus.instance.share(
-      ShareParams(text: 'Join my Fakka game! Tap to play: $url'),
-    );
+    if (AppConfig.isHost) {
+      _getDeviceIp().then((ipResult) {
+        final hostPart = ipResult != null
+            ? '?host=${ipResult.ip}:${AppConfig.serverPort}'
+            : '';
+        final url =
+            'https://${AppConfig.deepLinkHost}/join/$roomId$hostPart';
+        SharePlus.instance.share(
+          ShareParams(text: 'Join my Fakka game! Tap to play: $url'),
+        );
+      });
+    } else {
+      final url = 'https://${AppConfig.deepLinkHost}/join/$roomId';
+      SharePlus.instance.share(
+        ShareParams(text: 'Join my Fakka game! Tap to play: $url'),
+      );
+    }
+  }
+
+  /// Tries to discover the device's Wi-Fi or hotspot IPv4 address.
+  static Future<({String ip})?> _getDeviceIp() async {
+    try {
+      final interfaces = await NetworkInterface.list();
+      for (final iface in interfaces) {
+        for (final addr in iface.addresses) {
+          if (addr.type == InternetAddressType.IPv4 &&
+              !addr.isLoopback &&
+              !addr.isLinkLocal) {
+            return (ip: addr.address);
+          }
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 }
 

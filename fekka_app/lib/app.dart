@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'config.dart';
 import 'screens/home_screen.dart';
 import 'screens/join_screen.dart';
 import 'screens/lobby_screen.dart';
@@ -43,19 +44,27 @@ class FakkaApp extends ConsumerWidget {
     // Parse deep link arguments
     String? roomId;
 
-    // Deep link from platform: `/join/{roomId}`
+    // Deep link from platform: `/join/{roomId}?host=IP:PORT`
     final uri = Uri.tryParse(settings.name ?? '');
     if (uri != null && uri.pathSegments.length >= 2) {
       if (uri.pathSegments[0] == 'join') {
         roomId = uri.pathSegments[1];
+        final hostParam = uri.queryParameters['host'];
+        if (hostParam != null && hostParam.isNotEmpty) {
+          AppConfig.hostIp = hostParam;
+          AppConfig.isHost = false;
+        }
         settings = RouteSettings(
           name: '/join',
-          arguments: roomId,
+          arguments: {
+            'roomId': roomId,
+            if (hostParam != null) 'hostIp': hostParam,
+          },
         );
       }
     }
 
-    // Also handle custom scheme: `fekka://join/{roomId}`
+    // Also handle custom scheme: `fekka://join/{roomId}?host=IP:PORT`
     if (settings.name?.startsWith('fekka://') == true) {
       final customUri = Uri.tryParse(settings.name!);
       if (customUri != null &&
@@ -64,9 +73,17 @@ class FakkaApp extends ConsumerWidget {
         roomId = customUri.pathSegments.length >= 2
             ? customUri.pathSegments[1]
             : null;
+        final hostParam = customUri.queryParameters['host'];
+        if (hostParam != null && hostParam.isNotEmpty) {
+          AppConfig.hostIp = hostParam;
+          AppConfig.isHost = false;
+        }
         settings = RouteSettings(
           name: '/join',
-          arguments: roomId,
+          arguments: {
+            if (roomId != null) 'roomId': roomId,
+            if (hostParam != null) 'hostIp': hostParam,
+          },
         );
       }
     }

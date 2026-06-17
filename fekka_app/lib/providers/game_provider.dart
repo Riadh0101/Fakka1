@@ -2,9 +2,12 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../config.dart';
+import '../engine/room_manager.dart';
+import '../engine/state_adapter.dart';
 import '../models/card.dart';
 import '../models/game_state.dart';
 import '../models/player_state.dart';
+import '../server/fakka_server.dart';
 import '../services/api_service.dart';
 import '../services/socket_service.dart';
 
@@ -20,6 +23,7 @@ final gameProvider = StateNotifierProvider<GameNotifier, GameState>((ref) {
 class GameNotifier extends StateNotifier<GameState> {
   final ApiService _api;
   final SocketService _socket;
+  FakkaServer? _server;
 
   StreamSubscription? _stateSyncSub;
   StreamSubscription? _stateUpdateSub;
@@ -51,10 +55,20 @@ class GameNotifier extends StateNotifier<GameState> {
   // ---- Public Actions ----
 
   /// Creates a new game room and connects via socket.
-  Future<void> createGame(String playerName) async {
+  /// When [isHost] is true, starts the embedded FakkaServer on localhost.
+  Future<void> createGame(String playerName, {bool isHost = true}) async {
     state = state.copyWith(errorMessage: null, clearError: false);
 
     try {
+      // Start embedded server if hosting.
+      if (isHost) {
+        AppConfig.isHost = true;
+        _server = FakkaServer();
+        await _server!.start();
+        // Brief pause for server to bind.
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+
       final result = await _api.createRoom(playerName);
       final roomId = result['roomId'] as String;
       final playerId = result['adminPlayerId'] as String;
@@ -150,7 +164,7 @@ class GameNotifier extends StateNotifier<GameState> {
   void _onStateSync(dynamic data) {
     if (data is! Map<String, dynamic>) return;
 
-    final incoming = GameState.fromServerSync(
+    final incoming = StateAdapter.fromEngineStateSync(
       data,
       playerId: state.playerId ?? const Uuid().v4(),
       playerName: state.playerName ?? 'Player',
@@ -158,14 +172,12 @@ class GameNotifier extends StateNotifier<GameState> {
     );
 
     state = incoming.copyWith(
-      // Preserve local identifiers
       roomId: incoming.roomId ?? state.roomId,
       playerId: state.playerId,
       playerName: state.playerName,
       seatIndex: incoming.seatIndex ?? state.seatIndex,
       isReconnecting: false,
       isConnected: true,
-      // Clear transient animation / round-end state on full sync
       clearError: true,
       clearRoundScores: true,
       clearCapturedCards: true,
@@ -176,72 +188,36 @@ class GameNotifier extends StateNotifier<GameState> {
   void _onStateUpdate(dynamic data) {
     if (data is! Map<String, dynamic>) return;
 
-    final event = data['event'] as String? ?? '';
+    final incoming = StateAdapter.fromEngineStateUpdate(
+      data,
+      playerId: state.playerId ?? '',
+      playerName: state.playerName ?? 'Player',
+      seatIndex: state.seatIndex,
+    );
 
-    switch (event) {
-      case 'hand_update':
-        final handJson = data['myHand'] as List<dynamic>?;
-        if (handJson != null) {
-          state = state.copyWith(
-            myHand: handJson
-                .map((c) => GameCard.fromJson(c as Map<String, dynamic>))
-                .toList(),
-          );
-        }
-        break;
-
-      case 'turn_change':
-        final currentSeat = data['currentPlayerSeat'] as int?;
-        if (currentSeat != null) {
-          state = state.copyWith(
-            currentPlayerSeat: currentSeat,
-            isMyTurn: currentSeat == state.seatIndex,
-          );
-        }
-        break;
-
-      case 'pool_update':
-        final poolData = data['pool'] as Map<String, dynamic>?;
-        if (poolData != null) {
-          state = state.copyWith(
-            poolSize: poolData['size'] as int? ?? state.poolSize,
-            poolTop: poolData['topCard'] != null
-                ? GameCard.fromJson(poolData['topCard'] as Map<String, dynamic>)
-                : state.poolTop,
-          );
-        }
-        break;
-
-      case 'opponent_update':
-        final opponentsJson = data['opponents'] as List<dynamic>?;
-        if (opponentsJson != null) {
-          state = state.copyWith(
-            opponents: opponentsJson
-                .map((o) => PlayerGameInfo.fromJson(o as Map<String, dynamic>))
-                .toList(),
-          );
-        }
-        break;
-
-      case 'score_update':
-        final scoresJson = data['scores'] as Map<String, dynamic>?;
-        if (scoresJson != null) {
-          state = state.copyWith(
-            scores: scoresJson.map((k, v) => MapEntry(k, v as int)),
-          );
-        }
-        break;
-
-      default:
-        break;
-    }
+    state = state.copyWith(
+      myHand: incoming.myHand,
+      poolTop: incoming.poolTop,
+      poolSize: incoming.poolSize,
+      opponents: incoming.opponents,
+      currentPlayerSeat: incoming.currentPlayerSeat,
+      isMyTurn: incoming.isMyTurn,
+      scores: incoming.scores,
+      roundNumber: incoming.roundNumber,
+      gameOver: incoming.gameOver,
+      roomStatus: incoming.roomStatus != 'waiting' ? incoming.roomStatus : null,
+    );
   }
 
   void _onCaptureEvent(dynamic data) {
     if (data is! Map<String, dynamic>) return;
-    final cardsJson = data['capturedCards'] as List<dynamic>?;
+
+    final parsed = StateAdapter.parseCaptureEvent(data);
+    if (parsed == null) return;
+
+    final cardsJson = parsed['capturedCards'] as List<dynamic>?;
     state = state.copyWith(
-      capturingPlayerId: data['capturingPlayerId'] as String?,
+      capturingPlayerId: parsed['capturingPlayerId'] as String?,
       capturedCards: cardsJson
           ?.map((c) => GameCard.fromJson(c as Map<String, dynamic>))
           .toList(),
@@ -250,10 +226,16 @@ class GameNotifier extends StateNotifier<GameState> {
 
   void _onRoundEnd(dynamic data) {
     if (data is! Map<String, dynamic>) return;
-    final scoresJson = data['scores'] as Map<String, dynamic>?;
-    state = state.copyWith(
-      roundScores: scoresJson?.map((k, v) => MapEntry(k, v as int)),
-    );
+    // Server sends scores as a list of player score maps.
+    final scoresList = data['scores'] as List<dynamic>?;
+    if (scoresList != null) {
+      final scoresMap = <String, int>{};
+      for (final s in scoresList) {
+        final sm = s as Map<String, dynamic>;
+        scoresMap[sm['playerId'] as String] = sm['cumulativeScore'] as int? ?? 0;
+      }
+      state = state.copyWith(roundScores: scoresMap);
+    }
   }
 
   void _onPlayerEliminated(dynamic data) {
@@ -264,12 +246,21 @@ class GameNotifier extends StateNotifier<GameState> {
 
   void _onGameOver(dynamic data) {
     if (data is! Map<String, dynamic>) return;
-    final rankingsJson = data['rankings'] as List<dynamic>?;
+    final rankingsList = data['rankings'] as List<dynamic>?;
     state = state.copyWith(
       gameOver: true,
       roomStatus: 'finished',
-      finalRankings: rankingsJson
-              ?.map((r) => Ranking.fromJson(r as Map<String, dynamic>))
+      finalRankings: rankingsList
+              ?.map((r) {
+                final rm = r as Map<String, dynamic>;
+                return Ranking(
+                  playerId: rm['playerId'] as String? ?? '',
+                  name: rm['playerName'] as String? ?? '',
+                  seatIndex: 0,
+                  totalScore: rm['score'] as int? ?? 0,
+                  rank: rm['rank'] as int? ?? 99,
+                );
+              })
               .toList() ??
           [],
     );
@@ -277,6 +268,9 @@ class GameNotifier extends StateNotifier<GameState> {
 
   void _onPlayerJoined(dynamic data) {
     if (data is! Map<String, dynamic>) return;
+    // Handle both formats:
+    // 1. Full list: { players: [{ playerId, name, seatIndex, isConnected }] }
+    // 2. Single rejoin: { playerId, name, seatIndex, reconnected }
     final playersJson = data['players'] as List<dynamic>?;
     if (playersJson != null) {
       state = state.copyWith(
@@ -319,6 +313,8 @@ class GameNotifier extends StateNotifier<GameState> {
     _connectionSub?.cancel();
     _api.dispose();
     _socket.dispose();
+    _server?.stop();
+    AppConfig.isHost = false;
     super.dispose();
   }
 }

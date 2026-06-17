@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../config.dart';
 import '../providers/game_provider.dart';
 import 'lobby_screen.dart';
 
@@ -27,6 +28,18 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
     if (routeArgs is String && routeArgs.isNotEmpty) {
       if (_roomCodeController.text.isEmpty) {
         _roomCodeController.text = routeArgs;
+      }
+    } else if (routeArgs is Map) {
+      final roomId = routeArgs['roomId'];
+      final hostIp = routeArgs['hostIp'];
+      if (roomId is String && roomId.isNotEmpty) {
+        if (_roomCodeController.text.isEmpty) {
+          _roomCodeController.text = roomId;
+        }
+      }
+      if (hostIp is String && hostIp.isNotEmpty) {
+        AppConfig.hostIp = hostIp;
+        AppConfig.isHost = false;
       }
     }
   }

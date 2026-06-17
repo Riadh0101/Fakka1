@@ -1,19 +1,22 @@
 import 'dart:async';
-import 'package:socket_io_client/socket_io_client.dart' as io;
+import 'dart:convert';
+import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
+import '../engine/card_adapter.dart';
 import '../models/card.dart';
 import '../models/socket_event.dart';
 
-/// Manages the Socket.IO connection to the NestJS backend.
+/// Manages the raw WebSocket connection to the embedded Dart server.
 ///
 /// Handles connect, disconnect, reconnection, and event routing.
 /// Stores playerId and roomId in shared_preferences so the player
 /// can rejoin on app restart.
 class SocketService {
-  io.Socket? _socket;
+  WebSocket? _socket;
   String? _roomId;
   String? _playerId;
+  bool _connected = false;
 
   // Internal callback registries
   final _onStateSyncController = StreamController<dynamic>.broadcast();
@@ -41,11 +44,11 @@ class SocketService {
   Stream<dynamic> get onError => _onErrorController.stream;
   Stream<bool> get onConnectionChange => _onConnectionChangeController.stream;
 
-  bool get isConnected => _socket?.connected ?? false;
+  bool get isConnected => _connected;
 
   // ---- Connect / Disconnect ----
 
-  /// Opens a Socket.IO connection and joins the given room.
+  /// Opens a raw WebSocket connection and joins the given room.
   Future<void> connect({
     required String serverUrl,
     required String roomId,
@@ -57,21 +60,31 @@ class SocketService {
 
     await _persistSession(roomId, playerId);
 
-    _socket = io.io(
-      '$serverUrl/game',
-      io.OptionBuilder()
-          .setTransports(['websocket'])
-          .enableAutoConnect()
-          .disableForceNew()
-          .setQuery({'roomId': roomId, 'playerId': playerId})
-          .setReconnectionDelay(1000)
-          .setReconnectionDelayMax(5000)
-          .setTimeout(10000)
-          .build(),
-    );
+    final uri = Uri.parse(serverUrl);
+    final wsUrl =
+        'ws://${uri.host}:${uri.port}/game?roomId=$roomId&playerId=$playerId';
 
-    _registerListeners();
-    _socket!.connect();
+    try {
+      _socket = await WebSocket.connect(wsUrl);
+      _connected = true;
+      _onConnectionChangeController.add(true);
+      _reconnectTimer?.cancel();
+      _reconnectTimer = null;
+
+      // Emit rejoin to trigger state_sync from the server.
+      if (_roomId != null && _playerId != null) {
+        emitRejoin();
+      }
+
+      _startListening();
+    } catch (e) {
+      _connected = false;
+      _onConnectionChangeController.add(false);
+      _onErrorController.add({
+        'type': 'connection_error',
+        'message': 'Failed to connect: $e',
+      });
+    }
   }
 
   /// Reconnects to a previously persisted session.
@@ -84,21 +97,24 @@ class SocketService {
     _playerId = session['playerId'];
     _wasManuallyDisconnected = false;
 
-    _socket = io.io(
-      '$serverUrl/game',
-      io.OptionBuilder()
-          .setTransports(['websocket'])
-          .enableAutoConnect()
-          .disableForceNew()
-          .setQuery({'roomId': _roomId!, 'playerId': _playerId!})
-          .setReconnectionDelay(1000)
-          .setReconnectionDelayMax(5000)
-          .build(),
-    );
+    final uri = Uri.parse(serverUrl);
+    final wsUrl =
+        'ws://${uri.host}:${uri.port}/game?roomId=${_roomId!}&playerId=${_playerId!}';
 
-    _registerListeners();
-    _socket!.connect();
-    return true;
+    try {
+      _socket = await WebSocket.connect(wsUrl);
+      _connected = true;
+      _onConnectionChangeController.add(true);
+      _reconnectTimer?.cancel();
+      _reconnectTimer = null;
+
+      emitRejoin();
+      _startListening();
+      return true;
+    } catch (_) {
+      _connected = false;
+      return false;
+    }
   }
 
   /// Gracefully disconnects and clears persisted session.
@@ -106,84 +122,104 @@ class SocketService {
     _wasManuallyDisconnected = true;
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
-    _socket?.disconnect();
-    _socket?.dispose();
+    _connected = false;
+    _socket?.close();
     _socket = null;
     _clearSession();
   }
 
   // ---- Emitters ----
 
-  /// Sends a play_card event with the selected card.
-  void emitPlayCard(GameCard card) {
-    _socket?.emit(SocketEvent.playCard, {
-      'roomId': _roomId,
-      'playerId': _playerId,
-      'card': card.toJson(),
-    });
+  /// Sends a play_card event with the selected card (converted to engine format).
+  void emitPlayCard(GameCard gc) {
+    final ec = toEngineCard(gc);
+    _socket?.add(jsonEncode({
+      'event': 'play_card',
+      'data': {
+        'roomId': _roomId,
+        'playerId': _playerId,
+        'rank': ec.rank,
+        'suit': ec.suit,
+      },
+    }));
   }
 
   /// Sends a rejoin event to restore session state.
   void emitRejoin() {
-    _socket?.emit(SocketEvent.rejoin, {
-      'roomId': _roomId,
-      'playerId': _playerId,
-    });
+    _socket?.add(jsonEncode({
+      'event': 'rejoin',
+      'data': {
+        'roomId': _roomId,
+        'playerId': _playerId,
+      },
+    }));
   }
 
   // ---- Internal ----
 
-  void _registerListeners() {
-    _socket?.onConnect((_) {
-      _reconnectTimer?.cancel();
-      _reconnectTimer = null;
-      _onConnectionChangeController.add(true);
-      // On fresh connect or reconnect, emit rejoin to get state sync
-      if (_roomId != null && _playerId != null) {
-        emitRejoin();
-      }
-    });
+  /// Starts listening to the WebSocket stream and routes incoming
+  /// JSON messages to the appropriate stream controllers.
+  void _startListening() {
+    _socket?.listen(
+      (data) {
+        final String text =
+            data is String ? data : utf8.decode(data as List<int>);
+        try {
+          final message = jsonDecode(text) as Map<String, dynamic>;
+          final event = message['event'] as String?;
+          final payload = message['data'];
+          _routeEvent(event, payload);
+        } catch (_) {
+          // Ignore malformed frames.
+        }
+      },
+      onError: (_) {
+        _connected = false;
+        _onConnectionChangeController.add(false);
+        _startReconnectTimeout();
+      },
+      onDone: () {
+        _connected = false;
+        _onConnectionChangeController.add(false);
+        _startReconnectTimeout();
+      },
+      cancelOnError: false,
+    );
+  }
 
-    _socket?.onDisconnect((_) {
-      _onConnectionChangeController.add(false);
-      _startReconnectTimeout();
-    });
-
-    _socket?.onConnectError((_) {
-      _onConnectionChangeController.add(false);
-    });
-
-    _socket?.on(SocketEvent.stateSync, (data) {
-      _onStateSyncController.add(data);
-    });
-
-    _socket?.on(SocketEvent.stateUpdate, (data) {
-      _onStateUpdateController.add(data);
-    });
-
-    _socket?.on(SocketEvent.capture, (data) {
-      _onCaptureController.add(data);
-    });
-
-    _socket?.on(SocketEvent.roundEnd, (data) {
-      _onRoundEndController.add(data);
-    });
-
-    _socket?.on(SocketEvent.playerEliminated, (data) {
-      _onPlayerEliminatedController.add(data);
-    });
-
-    _socket?.on(SocketEvent.gameOver, (data) {
-      _onGameOverController.add(data);
-    });
-
-    _socket?.on(SocketEvent.playerJoined, (data) {
-      _onPlayerJoinedController.add(data);
-    });
-
-    _socket?.on(SocketEvent.error, (data) {
-      _onErrorController.add(data);
-    });
+  /// Routes an incoming event to its matching stream controller.
+  void _routeEvent(String? event, dynamic data) {
+    if (event == null) return;
+    switch (event) {
+      case 'state_sync':
+        _onStateSyncController.add(data);
+        break;
+      case 'state_update':
+        _onStateUpdateController.add(data);
+        break;
+      case 'capture_event':
+      case 'capture':
+        _onCaptureController.add(data);
+        break;
+      case 'round_end':
+        _onRoundEndController.add(data);
+        break;
+      case 'player_eliminated':
+        _onPlayerEliminatedController.add(data);
+        break;
+      case 'game_over':
+        _onGameOverController.add(data);
+        break;
+      case 'player_joined':
+        _onPlayerJoinedController.add(data);
+        break;
+      case 'error':
+        _onErrorController.add(data);
+        break;
+      case 'player_disconnected':
+        // Handled via the connection state stream.
+        break;
+    }
   }
 
   void _startReconnectTimeout() {
@@ -191,7 +227,7 @@ class SocketService {
     _reconnectTimer = Timer(
       Duration(seconds: AppConfig.reconnectTimeoutSeconds),
       () {
-        if (!(_socket?.connected ?? false)) {
+        if (!_connected) {
           _onErrorController.add({
             'type': 'connection_lost',
             'message': 'Connection lost. Please leave and rejoin.',
@@ -238,6 +274,6 @@ class SocketService {
     _onPlayerJoinedController.close();
     _onErrorController.close();
     _onConnectionChangeController.close();
-    _socket?.dispose();
+    _socket?.close();
   }
 }

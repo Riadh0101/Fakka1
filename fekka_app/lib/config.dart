@@ -3,18 +3,36 @@
 /// All API and Socket URLs are derived from [baseUrl].
 /// Change [baseUrl] to point at a different server environment.
 class AppConfig {
+  /// Whether this device is the host (game creator).
+  static bool isHost = false;
+
+  /// The host's IP:port when joining as a guest (set from deep link or input).
+  static String? hostIp;
+
+  /// Server port used when running as host.
+  static const int serverPort = 3000;
+
+  /// Fallback base URL used when neither host nor guest IP is set.
+  static const String _fallbackBaseUrl = 'http://192.168.137.1:3000';
+
   /// Base URL of the NestJS backend server.
-  /// Defaults to localhost for development.
-  static const String baseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-    defaultValue: 'http://192.168.137.1:3000',
-  );
+  ///
+  /// - Host mode → http://localhost:$serverPort
+  /// - Guest mode (hostIp set) → http://$hostIp
+  /// - Fallback → $_fallbackBaseUrl
+  static String get baseUrl {
+    if (isHost) return 'http://localhost:$serverPort';
+    if (hostIp != null && hostIp!.isNotEmpty) return 'http://$hostIp';
+    return _fallbackBaseUrl;
+  }
 
   /// REST API base URL.
   static String get apiUrl => baseUrl;
 
-  /// Socket.IO connection URL (same host as REST).
-  static String get socketUrl => baseUrl;
+  /// WebSocket connection URL (ws:// or wss:// derived from baseUrl).
+  static String get socketUrl => baseUrl
+      .replaceFirst('https://', 'wss://')
+      .replaceFirst('http://', 'ws://');
 
   /// Deep link base host for share invites.
   static const String deepLinkHost = 'fekka-game.com';

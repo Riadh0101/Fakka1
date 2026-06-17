@@ -4,10 +4,12 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../config.dart';
 
-/// Thin REST client for room-management endpoints on the NestJS backend.
+/// Thin REST client for room-management endpoints on the embedded server.
 class ApiService {
   final http.Client _client = http.Client();
-  final String _baseUrl = AppConfig.apiUrl;
+
+  /// Dynamically resolves the base URL from [AppConfig].
+  String get _baseUrl => AppConfig.apiUrl;
 
   /// POST /games/create
   Future<Map<String, dynamic>> createRoom(String adminName) async {
