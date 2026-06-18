@@ -21,12 +21,12 @@ $color = $colors[$colorIdx]
 
 # Write updated build info
 @"
-/// Auto-generated build info — do not edit manually.
+/// Auto-generated build info - do not edit manually.
 class BuildInfo {
   static const int number = $v;
   static const List<int> colors = [0xFF2196F3, 0xFFE94560, 0xFFFFC107]; // blue, red, yellow
 }
-"@ | Set-Content $buildFile -NoNewline
+"@ | Set-Content $buildFile -NoNewline -Encoding UTF8
 
 Write-Host "═══════════════════════════════════" -ForegroundColor Cyan
 Write-Host "  Build #$v  |  Circle: $($colorNames[$colorIdx])" -ForegroundColor Cyan

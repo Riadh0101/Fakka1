@@ -1,5 +1,5 @@
-/// Auto-generated build info — do not edit manually.
+ï»¿/// Auto-generated build info - do not edit manually.
 class BuildInfo {
-  static const int number = 9;
+  static const int number = 2;
   static const List<int> colors = [0xFF2196F3, 0xFFE94560, 0xFFFFC107]; // blue, red, yellow
 }
