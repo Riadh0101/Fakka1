@@ -41,12 +41,7 @@ class RoomManager {
 
   /// Generate a 6-character alphanumeric room ID.
   String _generateRoomId() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    final buffer = StringBuffer();
-    for (var i = 0; i < 6; i++) {
-      buffer.write(chars[_random.nextInt(chars.length)]);
-    }
-    return buffer.toString();
+    return (1000 + _random.nextInt(9000)).toString();
   }
 
   /// Create a new room. Admin is player 0.

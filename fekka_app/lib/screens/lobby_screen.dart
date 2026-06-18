@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -117,14 +116,15 @@ class LobbyScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 20),
 
-                // Share invite button
+                // Share invite button (admin only)
+                if (isAdmin)
                 SizedBox(
                   width: double.infinity,
                   height: 44,
                   child: OutlinedButton.icon(
-                    onPressed: () => _shareInvite(state.roomId),
+                    onPressed: () => _shareRoomCode(state.roomId),
                     icon: const Icon(Icons.share, size: 18),
-                    label: const Text('Share Invite'),
+                    label: const Text('Share Room Code'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white70,
                       side: const BorderSide(color: Colors.white24),
@@ -134,6 +134,7 @@ class LobbyScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
+                if (isAdmin)
                 const SizedBox(height: 28),
 
                 // Player list label
@@ -242,40 +243,11 @@ class LobbyScreen extends ConsumerWidget {
     return ListView(children: slots);
   }
 
-  void _shareInvite(String? roomId) {
+  void _shareRoomCode(String? roomId) {
     if (roomId == null) return;
-    if (AppConfig.isHost) {
-      _getDeviceIp().then((ipResult) {
-        final url = ipResult != null
-            ? 'http://${ipResult.ip}:${AppConfig.serverPort}/join/$roomId'
-            : 'https://${AppConfig.deepLinkHost}/join/$roomId';
-        SharePlus.instance.share(
-          ShareParams(text: 'Join my Fakka game! Tap to play: $url'),
-        );
-      });
-    } else {
-      final url = 'https://${AppConfig.deepLinkHost}/join/$roomId';
-      SharePlus.instance.share(
-        ShareParams(text: 'Join my Fakka game! Tap to play: $url'),
-      );
-    }
-  }
-
-  /// Tries to discover the device's Wi-Fi or hotspot IPv4 address.
-  static Future<({String ip})?> _getDeviceIp() async {
-    try {
-      final interfaces = await NetworkInterface.list();
-      for (final iface in interfaces) {
-        for (final addr in iface.addresses) {
-          if (addr.type == InternetAddressType.IPv4 &&
-              !addr.isLoopback &&
-              !addr.isLinkLocal) {
-            return (ip: addr.address);
-          }
-        }
-      }
-    } catch (_) {}
-    return null;
+    SharePlus.instance.share(
+      ShareParams(text: 'Join my Fakka game! Room code: $roomId'),
+    );
   }
 }
 
