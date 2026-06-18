@@ -44,10 +44,14 @@ class FakkaServer {
 
   /// Stop the server.
   Future<void> stop() async {
-    for (final ws in _clients.values) {
+    // Snapshot the clients to avoid concurrent modification if a delayed
+    // cleanup task (e.g. from _handleGameOver) mutates _clients while we
+    // are iterating.
+    final clientsSnapshot = _clients.values.toList();
+    _clients.clear();
+    for (final ws in clientsSnapshot) {
       await ws.close();
     }
-    _clients.clear();
     await _httpServer?.close(force: true);
     _httpServer = null;
     print('[FakkaServer] Stopped');
@@ -132,8 +136,9 @@ class FakkaServer {
           _sendError(request.response, 400, 'adminPlayerId is required');
           return;
         }
+        final seed = body?['seed'] as int?;
         try {
-          final state = _roomManager.startGame(roomId, adminPlayerId);
+          final state = _roomManager.startGame(roomId, adminPlayerId, seed: seed);
           final sanitized = _roomManager.engine.sanitizeForPlayer(state, adminPlayerId);
           _sendJson(request.response, 200, sanitized.toJson());
           // Broadcast init to all connected players.
@@ -315,6 +320,10 @@ class FakkaServer {
           final nextRound =
               _roomManager.engine.setupRound(roundResult.newState);
           _roomManager.saveGameState(roomId, nextRound);
+
+          if (nextRound.gameOver) {
+            _handleGameOver(roomId, nextRound);
+          }
         }
       }
 

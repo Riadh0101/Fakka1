@@ -272,13 +272,15 @@ class GameEngine {
       final remainingAfterPool = deck.remaining;
       final numPlayers = activePlayers.length;
       if (numPlayers > 0 && remainingAfterPool > 0) {
-        final perPlayer = remainingAfterPool ~/ numPlayers;
-        final remainder = remainingAfterPool % numPlayers;
-        for (var i = 0; i < numPlayers; i++) {
-          final dealN = perPlayer + (i < remainder ? 1 : 0);
-          if (dealN > 0) {
-            activePlayers[i].hand = deck.deal(dealN);
-          }
+        // Deal as evenly as possible, but never leave a player with zero
+        // cards while others can still play — that would deadlock the turn
+        // order. Give every active player at least one card if possible.
+        final base = remainingAfterPool ~/ numPlayers;
+        final extra = remainingAfterPool % numPlayers;
+        final perPlayer = base < 1 ? 1 : base;
+        for (var i = 0; i < numPlayers && deck.remaining > 0; i++) {
+          final dealN = perPlayer + (i < extra ? 1 : 0);
+          activePlayers[i].hand = deck.deal(dealN.clamp(1, deck.remaining));
         }
       }
     } else {
@@ -293,15 +295,57 @@ class GameEngine {
       }
     }
 
+    // Ensure the current player actually has cards. When the proportional
+    // fallback cannot give cards to everyone, the preserved index may point
+    // to an empty-handed player and the game would deadlock waiting for a
+    // play that can never come.
+    var newCurrentPlayerIndex = state.currentPlayerIndex;
+    if (activePlayers.isNotEmpty) {
+      newCurrentPlayerIndex = newCurrentPlayerIndex % activePlayers.length;
+      if (activePlayers[newCurrentPlayerIndex].hand.isEmpty) {
+        for (var i = 1; i <= activePlayers.length; i++) {
+          final idx = (state.currentPlayerIndex + i) % activePlayers.length;
+          if (activePlayers[idx].hand.isNotEmpty) {
+            newCurrentPlayerIndex = idx;
+            break;
+          }
+        }
+      }
+    }
+
+    // If no active player received cards, the deck is exhausted and the game
+    // cannot continue. Assign remaining ranks by cumulative score (lowest
+    // score is best) and end the game.
+    var gameOver = state.gameOver;
+    var nextRank = state.nextRank;
+    if (activePlayers.isNotEmpty &&
+        activePlayers.every((p) => p.hand.isEmpty)) {
+      gameOver = true;
+      final sortedByScore = activePlayers.toList()
+        ..sort((a, b) {
+          final scoreDiff = a.cumulativeScore - b.cumulativeScore;
+          if (scoreDiff != 0) return scoreDiff;
+          return a.seatIndex - b.seatIndex;
+        });
+      for (final p in sortedByScore) {
+        final idx = state.players.indexWhere((q) => q.id == p.id);
+        if (idx != -1) {
+          state.players[idx].rankEarned = nextRank;
+          state.players[idx].eliminated = true;
+          nextRank++;
+        }
+      }
+    }
+
     return GameState(
       roomId: state.roomId,
       deck: [...deck.cards],
       pool: [...pool.cards],
       players: state.players.map((p) => p.copy()).toList(),
       roundPlaysCompleted: 0,
-      currentPlayerIndex: state.currentPlayerIndex,
-      nextRank: state.nextRank,
-      gameOver: state.gameOver,
+      currentPlayerIndex: newCurrentPlayerIndex,
+      nextRank: nextRank,
+      gameOver: gameOver,
       roundCount: state.roundCount + 1,
     );
   }
@@ -389,9 +433,18 @@ class GameEngine {
       action = 'discard';
     }
 
-    // Advance turn.
-    final newCurrentPlayerIndex =
+    // Advance turn. Skip any active player that has no cards left (can
+    // happen when the deck runs low and the proportional deal cannot give
+    // three cards to everyone). This prevents the game from deadlocking.
+    var newCurrentPlayerIndex =
         (state.currentPlayerIndex + 1) % activePlayers.length;
+    for (var i = 0; i < activePlayers.length; i++) {
+      final idx = (state.currentPlayerIndex + 1 + i) % activePlayers.length;
+      if (activePlayers[idx].hand.isNotEmpty) {
+        newCurrentPlayerIndex = idx;
+        break;
+      }
+    }
     final newRoundPlaysCompleted = state.roundPlaysCompleted + 1;
 
     final newState = GameState(
@@ -532,7 +585,7 @@ class GameEngine {
       action: 'discard',
       poolCaptured: [],
       stolenFrom: [],
-      playedCard: Card(rank: '', suit: ''),
+      playedCard: const Card(rank: '', suit: ''),
       roundEnded: true,
       eliminatedPlayerIds: elim.eliminatedPlayerIds,
     );
