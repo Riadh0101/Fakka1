@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: fakka-game
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: node dist/server.js
+    envVars:
+      - key: PORT
+        value: 3000
