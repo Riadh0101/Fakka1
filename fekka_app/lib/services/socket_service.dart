@@ -60,9 +60,8 @@ class SocketService {
 
     await _persistSession(roomId, playerId);
 
-    final uri = Uri.parse(serverUrl);
     final wsUrl =
-        'ws://${uri.host}:${uri.port}/game?roomId=$roomId&playerId=$playerId';
+        '$serverUrl/game?roomId=$roomId&playerId=$playerId';
 
     try {
       _socket = await WebSocket.connect(wsUrl);
@@ -97,9 +96,8 @@ class SocketService {
     _playerId = session['playerId'];
     _wasManuallyDisconnected = false;
 
-    final uri = Uri.parse(serverUrl);
     final wsUrl =
-        'ws://${uri.host}:${uri.port}/game?roomId=${_roomId!}&playerId=${_playerId!}';
+        '$serverUrl/game?roomId=${_roomId!}&playerId=${_playerId!}';
 
     try {
       _socket = await WebSocket.connect(wsUrl);
