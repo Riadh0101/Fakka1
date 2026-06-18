@@ -64,6 +64,25 @@ app.post('/games/:roomId/start', (req: Request, res: Response) => {
   res.json({ started: true });
 });
 
+app.post('/games/:roomId/leave', (req: Request, res: Response) => {
+  const { roomId } = req.params;
+  const { playerId } = req.body;
+  if (!playerId) {
+    res.status(400).json({ message: 'معرف اللاعب مطلوب' });
+    return;
+  }
+  try {
+    const result = rooms.leaveRoom(roomId, playerId);
+    broadcastToRoom(roomId, 'player_left', {
+      players: rooms.getLobbyPlayers(roomId),
+      newAdminId: result.newAdminId,
+    });
+    res.json({ left: true, playerCount: rooms.getLobbyPlayers(roomId).length });
+  } catch (e: any) {
+    res.status(400).json({ message: e.message });
+  }
+});
+
 app.get('/games/:roomId/status', (req: Request, res: Response) => {
   try {
     const status = rooms.roomStatus(req.params.roomId);
