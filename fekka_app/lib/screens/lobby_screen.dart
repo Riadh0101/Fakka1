@@ -197,7 +197,7 @@ class LobbyScreen extends ConsumerWidget {
                               child: OutlinedButton(
                                 onPressed: () {
                                   ref.read(gameProvider.notifier).leaveGame();
-                                  Navigator.of(context).pop();
+                                  Navigator.of(context).popUntil((r) => r.isFirst);
                                 },
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: Colors.white38,
@@ -242,7 +242,7 @@ class LobbyScreen extends ConsumerWidget {
                               child: OutlinedButton(
                                 onPressed: () {
                                   ref.read(gameProvider.notifier).leaveGame();
-                                  Navigator.of(context).pop();
+                                  Navigator.of(context).popUntil((r) => r.isFirst);
                                 },
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: Colors.white38,

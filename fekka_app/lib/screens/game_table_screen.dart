@@ -346,7 +346,7 @@ class _GameTableScreenState extends ConsumerState<GameTableScreen> {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () {
-                  ref.read(gameProvider.notifier).clearError();
+                  ref.read(gameProvider.notifier).leaveGame();
                   Navigator.of(context).popUntil((r) => r.isFirst);
                 },
                 style: ElevatedButton.styleFrom(
