@@ -1,5 +1,9 @@
 import { v4 } from 'uuid';
 
+function generateRoomCode(): string {
+  return String(Math.floor(1000 + Math.random() * 9000));
+}
+
 export interface PlayerInfo {
   playerId: string;
   name: string;
@@ -18,7 +22,7 @@ const rooms = new Map<string, RoomData>();
 
 export class RoomManager {
   createRoom(adminName: string): { roomId: string; adminPlayerId: string } {
-    const roomId = v4().replace(/-/g, '').slice(0, 5).toUpperCase();
+    const roomId = generateRoomCode();
     const adminPlayerId = v4().replace(/-/g, '').slice(0, 8);
     rooms.set(roomId, {
       roomId,
