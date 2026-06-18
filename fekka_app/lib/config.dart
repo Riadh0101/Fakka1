@@ -15,13 +15,8 @@ class AppConfig {
   /// Fallback base URL used when neither host nor guest IP is set.
   static const String _fallbackBaseUrl = 'https://fakka1.onrender.com';
 
-  /// Base URL of the NestJS backend server.
-  ///
-  /// - Host mode → http://localhost:$serverPort
-  /// - Guest mode (hostIp set) → http://$hostIp
-  /// - Fallback → $_fallbackBaseUrl
+  /// Base URL — always uses the cloud server.
   static String get baseUrl {
-    if (isHost) return 'http://localhost:$serverPort';
     if (hostIp != null && hostIp!.isNotEmpty) return 'http://$hostIp';
     return _fallbackBaseUrl;
   }

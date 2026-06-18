@@ -55,18 +55,13 @@ class GameNotifier extends StateNotifier<GameState> {
   // ---- Public Actions ----
 
   /// Creates a new game room and connects via socket.
-  /// When [isHost] is true, starts the embedded FakkaServer on localhost.
+  /// Uses the cloud server — no embedded server needed.
   Future<void> createGame(String playerName, {bool isHost = true}) async {
     state = state.copyWith(errorMessage: null, clearError: false);
 
     try {
-      // Start embedded server if hosting.
       if (isHost) {
         AppConfig.isHost = true;
-        _server = FakkaServer();
-        await _server!.start();
-        // Brief pause for server to bind.
-        await Future.delayed(const Duration(milliseconds: 300));
       }
 
       final result = await _api.createRoom(playerName);
