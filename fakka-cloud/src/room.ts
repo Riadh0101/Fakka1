@@ -36,7 +36,9 @@ export class RoomManager {
   joinRoom(roomId: string, playerName: string): { playerId: string; seatIndex: number; roomStatus: string } {
     const room = rooms.get(roomId);
     if (!room) throw new Error('الغرفة غير موجودة');
-    if (room.players.length >= 4) throw new Error('الغرفة ممتلئة');
+    // Only count connected players — disconnected ones don't block new joins
+    const connectedCount = room.players.filter(p => p.isConnected).length;
+    if (connectedCount >= 4) throw new Error('الغرفة ممتلئة');
     if (room.status !== 'waiting') throw new Error('اللعبة قد بدأت بالفعل');
     const playerId = v4().replace(/-/g, '').slice(0, 8);
     const seatIndex = room.players.length;
