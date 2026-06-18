@@ -13,7 +13,7 @@ class AppConfig {
   static const int serverPort = 3000;
 
   /// Fallback base URL used when neither host nor guest IP is set.
-  static const String _fallbackBaseUrl = 'https://fakka-game.onrender.com';
+  static const String _fallbackBaseUrl = 'https://fakka1.onrender.com';
 
   /// Base URL of the NestJS backend server.
   ///
@@ -35,7 +35,7 @@ class AppConfig {
       .replaceFirst('http://', 'ws://');
 
   /// Deep link base host for share invites.
-  static const String deepLinkHost = 'fekka-game.com';
+  static const String deepLinkHost = 'fakka1.onrender.com';
 
   /// Timeout (seconds) before "Connection Lost" is shown.
   static const int reconnectTimeoutSeconds = 60;
