@@ -36,10 +36,12 @@ export class RoomManager {
   joinRoom(roomId: string, playerName: string): { playerId: string; seatIndex: number; roomStatus: string } {
     const room = rooms.get(roomId);
     if (!room) throw new Error('الغرفة غير موجودة');
-    // Only count connected players — disconnected ones don't block new joins
-    const connectedCount = room.players.filter(p => p.isConnected).length;
-    if (connectedCount >= 4) throw new Error('الغرفة ممتلئة');
     if (room.status !== 'waiting') throw new Error('اللعبة قد بدأت بالفعل');
+
+    // Remove any stale disconnected players first, then check limit
+    room.players = room.players.filter(p => p.isConnected);
+    if (room.players.length >= 4) throw new Error('الغرفة ممتلئة');
+
     const playerId = v4().replace(/-/g, '').slice(0, 8);
     const seatIndex = room.players.length;
     room.players.push({ playerId, name: playerName, seatIndex, isConnected: true });
@@ -49,7 +51,9 @@ export class RoomManager {
   roomStatus(roomId: string): { status: string; playerCount: number } {
     const room = rooms.get(roomId);
     if (!room) throw new Error('الغرفة غير موجودة');
-    return { status: room.status, playerCount: room.players.length };
+    // Only count connected players in status
+    const connected = room.players.filter(p => p.isConnected).length;
+    return { status: room.status, playerCount: connected };
   }
 
   getRoom(roomId: string): RoomData | undefined { return rooms.get(roomId); }
@@ -65,7 +69,7 @@ export class RoomManager {
   }
 
   getLobbyPlayers(roomId: string): PlayerInfo[] {
-    return rooms.get(roomId)?.players ?? [];
+    return (rooms.get(roomId)?.players ?? []).filter(p => p.isConnected);
   }
 
   /** Remove a player from the room, re-index seats, and transfer admin if needed. */
