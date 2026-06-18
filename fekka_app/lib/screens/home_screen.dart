@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/game_state.dart';
 import '../providers/game_provider.dart';
@@ -92,7 +93,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
 
     return Scaffold(
-      body: Container(
+      body: Stack(
+        children: [
+          Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -253,7 +256,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
           ),
+          ),
         ),
+        // خروج (Quit) button — top-right
+        Positioned(
+          top: 0,
+          right: 0,
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: TextButton(
+                onPressed: () => SystemNavigator.pop(),
+                child: const Text(
+                  'خروج',
+                  style: TextStyle(color: Colors.white38, fontSize: 15),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
       ),
     );
   }
