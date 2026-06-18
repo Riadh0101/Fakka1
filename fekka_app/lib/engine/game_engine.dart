@@ -103,7 +103,6 @@ class GameState {
   int nextRank;
   bool gameOver;
   int roundCount;
-  int? seed;
 
   GameState({
     required this.roomId,
@@ -115,7 +114,6 @@ class GameState {
     this.nextRank = 1,
     this.gameOver = false,
     this.roundCount = 0,
-    this.seed,
   })  : deck = deck ?? [],
         pool = pool ?? [],
         players = players ?? [];
@@ -130,7 +128,6 @@ class GameState {
         nextRank: nextRank,
         gameOver: gameOver,
         roundCount: roundCount,
-        seed: seed,
       );
 
   Map<String, dynamic> toJson() => {
@@ -143,7 +140,6 @@ class GameState {
         'nextRank': nextRank,
         'gameOver': gameOver,
         'roundCount': roundCount,
-        'seed': seed,
       };
 
   factory GameState.fromJson(Map<String, dynamic> json) => GameState(
@@ -165,7 +161,6 @@ class GameState {
         nextRank: json['nextRank'] as int? ?? 1,
         gameOver: json['gameOver'] as bool? ?? false,
         roundCount: json['roundCount'] as int? ?? 0,
-        seed: json['seed'] as int?,
       );
 }
 
@@ -229,7 +224,6 @@ class GameEngine {
       roomId: roomId,
       deck: [...deck.cards],
       players: players,
-      seed: seed,
     );
 
     return setupRound(state);
@@ -241,7 +235,7 @@ class GameEngine {
   /// player, recycle if deck insufficient, reset roundPlaysCompleted.
   GameState setupRound(GameState state) {
     final activePlayers = state.players.where((p) => !p.eliminated).toList();
-    final deck = Deck(seed: state.seed)..cards = [...state.deck];
+    final deck = Deck()..cards = [...state.deck];
     final pool = MiddlePool()..cards = [...state.pool];
 
     // Calculate cards needed.
@@ -299,53 +293,16 @@ class GameEngine {
       }
     }
 
-    // If the current player was dealt an empty hand, advance to the next
-    // active player who has cards. If no active player has cards, the game
-    // cannot continue; assign final ranks and mark it over.
-    var newCurrentPlayerIndex = state.currentPlayerIndex % activePlayers.length;
-    var gameOver = state.gameOver;
-    var nextRank = state.nextRank;
-    final handsDealt = activePlayers.map((p) => p.hand.length).toList();
-    if (handsDealt.every((n) => n == 0)) {
-      gameOver = true;
-      // Deck exhausted: rank remaining active players from highest score
-      // (lowest rank number) to lowest score (highest rank number).
-      final ranked = activePlayers.toList()
-        ..sort((a, b) {
-          final scoreDiff = b.cumulativeScore - a.cumulativeScore;
-          if (scoreDiff != 0) return scoreDiff;
-          return a.seatIndex - b.seatIndex;
-        });
-      for (final p in ranked) {
-        p.rankEarned = nextRank;
-        p.eliminated = true;
-        nextRank++;
-      }
-    } else {
-      final startIndex = newCurrentPlayerIndex;
-      while (activePlayers[newCurrentPlayerIndex].hand.isEmpty) {
-        newCurrentPlayerIndex =
-            (newCurrentPlayerIndex + 1) % activePlayers.length;
-        if (newCurrentPlayerIndex == startIndex) {
-          // Should not happen because we already checked not all are empty,
-          // but handle defensively.
-          gameOver = true;
-          break;
-        }
-      }
-    }
-
     return GameState(
       roomId: state.roomId,
       deck: [...deck.cards],
       pool: [...pool.cards],
       players: state.players.map((p) => p.copy()).toList(),
       roundPlaysCompleted: 0,
-      currentPlayerIndex: newCurrentPlayerIndex,
-      nextRank: nextRank,
-      gameOver: gameOver,
+      currentPlayerIndex: state.currentPlayerIndex,
+      nextRank: state.nextRank,
+      gameOver: state.gameOver,
       roundCount: state.roundCount + 1,
-      seed: state.seed,
     );
   }
 
@@ -432,17 +389,9 @@ class GameEngine {
       action = 'discard';
     }
 
-    // Advance turn, skipping any active players who ran out of cards.
-    var newCurrentPlayerIndex =
+    // Advance turn.
+    final newCurrentPlayerIndex =
         (state.currentPlayerIndex + 1) % activePlayers.length;
-    final startIndex = newCurrentPlayerIndex;
-    while (activePlayers[newCurrentPlayerIndex].hand.isEmpty) {
-      newCurrentPlayerIndex =
-          (newCurrentPlayerIndex + 1) % activePlayers.length;
-      // Guard against an infinite loop if every active hand is empty; in that
-      // case roundEnded will be true below and the round will end.
-      if (newCurrentPlayerIndex == startIndex) break;
-    }
     final newRoundPlaysCompleted = state.roundPlaysCompleted + 1;
 
     final newState = GameState(
@@ -455,7 +404,6 @@ class GameEngine {
       nextRank: state.nextRank,
       gameOver: state.gameOver,
       roundCount: state.roundCount,
-      seed: state.seed,
     );
 
     // Round ends when all active players have empty hands.
@@ -497,7 +445,6 @@ class GameEngine {
       nextRank: state.nextRank,
       gameOver: state.gameOver,
       roundCount: state.roundCount,
-      seed: state.seed,
     );
   }
 
@@ -568,7 +515,6 @@ class GameEngine {
         nextRank: nextRank,
         gameOver: gameOver,
         roundCount: state.roundCount,
-        seed: state.seed,
       ),
       eliminatedPlayerIds: eliminatedIds,
     );
@@ -617,7 +563,6 @@ class GameEngine {
       nextRank: state.nextRank,
       gameOver: state.gameOver,
       roundCount: state.roundCount,
-      seed: state.seed,
     );
   }
 }
