@@ -29,6 +29,9 @@ class FakkaServer {
 
   FakkaServer({this.port = 3000});
 
+  /// The actual bound port. Useful when [port] was 0 and the OS picked one.
+  int get actualPort => _httpServer?.port ?? port;
+
   RoomManager get roomManager => _roomManager;
 
   /// Start the HTTP + WebSocket server.
