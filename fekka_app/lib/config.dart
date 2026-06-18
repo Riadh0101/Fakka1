@@ -13,7 +13,7 @@ class AppConfig {
   static const int serverPort = 3000;
 
   /// Fallback base URL used when neither host nor guest IP is set.
-  static const String _fallbackBaseUrl = 'http://192.168.137.1:3000';
+  static const String _fallbackBaseUrl = 'https://fakka-game.onrender.com';
 
   /// Base URL of the NestJS backend server.
   ///
