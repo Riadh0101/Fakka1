@@ -36,6 +36,14 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="fekka-game.com" android:pathPrefix="/join/" />
             </intent-filter>
+
+            <!-- Local-network / testing links: http://IP:PORT/join/{roomId} -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" android:pathPrefix="/join/" />
+            </intent-filter>
         </activity>
 
         <meta-data

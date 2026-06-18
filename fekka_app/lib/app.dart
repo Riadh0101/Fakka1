@@ -45,11 +45,20 @@ class FakkaApp extends ConsumerWidget {
     String? roomId;
 
     // Deep link from platform: `/join/{roomId}?host=IP:PORT`
+    // or `http://IP:PORT/join/{roomId}`
     final uri = Uri.tryParse(settings.name ?? '');
     if (uri != null && uri.pathSegments.length >= 2) {
       if (uri.pathSegments[0] == 'join') {
         roomId = uri.pathSegments[1];
-        final hostParam = uri.queryParameters['host'];
+        var hostParam = uri.queryParameters['host'];
+        // If the link is `http://host:port/join/roomId`, derive host:port
+        // from the URL authority.
+        if ((hostParam == null || hostParam.isEmpty) &&
+            uri.host.isNotEmpty) {
+          hostParam = uri.port == 0 || uri.port == 80
+              ? uri.host
+              : '${uri.host}:${uri.port}';
+        }
         if (hostParam != null && hostParam.isNotEmpty) {
           AppConfig.hostIp = hostParam;
           AppConfig.isHost = false;

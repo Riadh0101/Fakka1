@@ -246,11 +246,9 @@ class LobbyScreen extends ConsumerWidget {
     if (roomId == null) return;
     if (AppConfig.isHost) {
       _getDeviceIp().then((ipResult) {
-        final hostPart = ipResult != null
-            ? '?host=${ipResult.ip}:${AppConfig.serverPort}'
-            : '';
-        final url =
-            'https://${AppConfig.deepLinkHost}/join/$roomId$hostPart';
+        final url = ipResult != null
+            ? 'http://${ipResult.ip}:${AppConfig.serverPort}/join/$roomId'
+            : 'https://${AppConfig.deepLinkHost}/join/$roomId';
         SharePlus.instance.share(
           ShareParams(text: 'Join my Fakka game! Tap to play: $url'),
         );
