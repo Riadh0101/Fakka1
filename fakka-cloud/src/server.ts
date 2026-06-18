@@ -128,6 +128,19 @@ wss.on('connection', (ws: WebSocket, req) => {
             card: data,
           });
           break;
+        case 'leave_room':
+          try {
+            const result = rooms.leaveRoom(roomId, playerId);
+            broadcastToRoom(roomId, 'player_left', {
+              players: rooms.getLobbyPlayers(roomId),
+              newAdminId: result.newAdminId,
+            });
+            // Close this client's WS gracefully
+            ws.close(1000, 'Left room');
+          } catch {
+            ws.send(JSON.stringify({ event: 'error', data: { message: 'فشلت مغادرة الغرفة' } }));
+          }
+          break;
         case 'get_state':
           ws.send(JSON.stringify({
             event: 'state_sync',
@@ -144,8 +157,12 @@ wss.on('connection', (ws: WebSocket, req) => {
 
   ws.on('close', () => {
     clients.delete(clientKey);
-    rooms.setPlayerConnected(roomId, playerId, false);
-    broadcastToRoom(roomId, 'player_joined', { players: rooms.getLobbyPlayers(roomId) });
+    // Only update if player still exists (not removed by explicit leave_room)
+    const stillInRoom = rooms.getPlayer(roomId, playerId);
+    if (stillInRoom) {
+      rooms.setPlayerConnected(roomId, playerId, false);
+      broadcastToRoom(roomId, 'player_joined', { players: rooms.getLobbyPlayers(roomId) });
+    }
   });
 
   ws.on('error', () => {

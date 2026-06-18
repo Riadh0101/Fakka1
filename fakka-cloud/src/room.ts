@@ -66,5 +66,34 @@ export class RoomManager {
     return rooms.get(roomId)?.players ?? [];
   }
 
+  /** Remove a player from the room, re-index seats, and transfer admin if needed. */
+  leaveRoom(roomId: string, playerId: string): { removed: boolean; newAdminId?: string } {
+    const room = rooms.get(roomId);
+    if (!room) throw new Error('الغرفة غير موجودة');
+
+    const idx = room.players.findIndex(p => p.playerId === playerId);
+    if (idx === -1) throw new Error('اللاعب غير موجود في هذه الغرفة');
+
+    const wasAdmin = room.adminPlayerId === playerId;
+    room.players.splice(idx, 1);
+
+    // Re-index seat numbers
+    room.players.forEach((p, i) => { p.seatIndex = i; });
+
+    // Transfer admin if admin left
+    let newAdminId: string | undefined;
+    if (wasAdmin && room.players.length > 0) {
+      room.adminPlayerId = room.players[0].playerId;
+      newAdminId = room.adminPlayerId;
+    }
+
+    // Delete room if empty
+    if (room.players.length === 0) {
+      rooms.delete(roomId);
+    }
+
+    return { removed: true, newAdminId };
+  }
+
   deleteRoom(roomId: string): void { rooms.delete(roomId); }
 }

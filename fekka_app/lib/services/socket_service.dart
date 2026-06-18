@@ -26,6 +26,7 @@ class SocketService {
   final _onPlayerEliminatedController = StreamController<dynamic>.broadcast();
   final _onGameOverController = StreamController<dynamic>.broadcast();
   final _onPlayerJoinedController = StreamController<dynamic>.broadcast();
+  final _onPlayerLeftController = StreamController<dynamic>.broadcast();
   final _onErrorController = StreamController<dynamic>.broadcast();
   final _onConnectionChangeController = StreamController<bool>.broadcast();
 
@@ -41,6 +42,7 @@ class SocketService {
   Stream<dynamic> get onPlayerEliminated => _onPlayerEliminatedController.stream;
   Stream<dynamic> get onGameOver => _onGameOverController.stream;
   Stream<dynamic> get onPlayerJoined => _onPlayerJoinedController.stream;
+  Stream<dynamic> get onPlayerLeft => _onPlayerLeftController.stream;
   Stream<dynamic> get onError => _onErrorController.stream;
   Stream<bool> get onConnectionChange => _onConnectionChangeController.stream;
 
@@ -153,6 +155,20 @@ class SocketService {
     }));
   }
 
+  /// Sends a leave_room event before disconnecting so the server
+  /// removes the player and broadcasts to the lobby.
+  void emitLeaveRoom() {
+    if (_socket != null && _socket!.readyState == WebSocket.open) {
+      _socket?.add(jsonEncode({
+        'event': 'leave_room',
+        'data': {
+          'roomId': _roomId,
+          'playerId': _playerId,
+        },
+      }));
+    }
+  }
+
   // ---- Internal ----
 
   /// Starts listening to the WebSocket stream and routes incoming
@@ -210,6 +226,9 @@ class SocketService {
         break;
       case 'player_joined':
         _onPlayerJoinedController.add(data);
+        break;
+      case 'player_left':
+        _onPlayerLeftController.add(data);
         break;
       case 'error':
         _onErrorController.add(data);
@@ -270,6 +289,7 @@ class SocketService {
     _onPlayerEliminatedController.close();
     _onGameOverController.close();
     _onPlayerJoinedController.close();
+    _onPlayerLeftController.close();
     _onErrorController.close();
     _onConnectionChangeController.close();
     _socket?.close();

@@ -32,6 +32,7 @@ class GameNotifier extends StateNotifier<GameState> {
   StreamSubscription? _playerEliminatedSub;
   StreamSubscription? _gameOverSub;
   StreamSubscription? _playerJoinedSub;
+  StreamSubscription? _playerLeftSub;
   StreamSubscription? _errorSub;
   StreamSubscription? _connectionSub;
 
@@ -48,6 +49,7 @@ class GameNotifier extends StateNotifier<GameState> {
         _socket.onPlayerEliminated.listen(_onPlayerEliminated);
     _gameOverSub = _socket.onGameOver.listen(_onGameOver);
     _playerJoinedSub = _socket.onPlayerJoined.listen(_onPlayerJoined);
+    _playerLeftSub = _socket.onPlayerLeft.listen(_onPlayerLeft);
     _errorSub = _socket.onError.listen(_onSocketError);
     _connectionSub = _socket.onConnectionChange.listen(_onConnectionChange);
   }
@@ -156,7 +158,11 @@ class GameNotifier extends StateNotifier<GameState> {
 
   /// Leaves the current game and disconnects.
   void leaveGame() {
-    _socket.disconnect();
+    _socket.emitLeaveRoom();
+    // Short delay so the leave_room message is sent before socket closes
+    Future.delayed(const Duration(milliseconds: 100), () {
+      _socket.disconnect();
+    });
     _server?.stop();
     _server = null;
     AppConfig.isHost = false;
@@ -285,6 +291,24 @@ class GameNotifier extends StateNotifier<GameState> {
     }
   }
 
+  void _onPlayerLeft(dynamic data) {
+    if (data is! Map<String, dynamic>) return;
+    // { players: [...], newAdminId: '...' }
+    final playersJson = data['players'] as List<dynamic>?;
+    if (playersJson != null) {
+      state = state.copyWith(
+        lobbyPlayers: playersJson
+            .map((p) => PlayerInfo.fromJson(p as Map<String, dynamic>))
+            .toList(),
+      );
+    }
+    // If admin changed and we are the new admin, update seatIndex to 0
+    final newAdminId = data['newAdminId'] as String?;
+    if (newAdminId != null && newAdminId == state.playerId) {
+      state = state.copyWith(seatIndex: 0);
+    }
+  }
+
   void _onSocketError(dynamic data) {
     String message;
     if (data is Map<String, dynamic>) {
@@ -313,6 +337,7 @@ class GameNotifier extends StateNotifier<GameState> {
     _playerEliminatedSub?.cancel();
     _gameOverSub?.cancel();
     _playerJoinedSub?.cancel();
+    _playerLeftSub?.cancel();
     _errorSub?.cancel();
     _connectionSub?.cancel();
     _api.dispose();
