@@ -2,6 +2,9 @@ services:
   - type: web
     name: fakka-game
     runtime: node
+    repo: https://github.com/Riadh0101/Fakka1
+    branch: master
+    autoDeploy: yes
     buildCommand: npm install && npm run build
     startCommand: node dist/server.js
     envVars:

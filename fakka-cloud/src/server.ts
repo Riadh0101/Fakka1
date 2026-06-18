@@ -192,7 +192,7 @@ wss.on('connection', (ws: WebSocket, req) => {
 
 // ── Health check ────────────────────────────────────────
 
-app.get('/', (_req, res) => res.json({ ok: true, name: 'fakka-cloud' }));
+app.get('/', (_req, res) => res.json({ ok: true, name: 'fakka-cloud', version: '1.1.0', features: ['leave_room', 'connected_count_join', 'rest_leave'] }));
 
 // ── Start ───────────────────────────────────────────────
 
