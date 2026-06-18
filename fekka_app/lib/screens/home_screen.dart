@@ -38,7 +38,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your name')),
+        const SnackBar(content: Text('الرجاء إدخال اسمك')),
       );
       return;
     }
@@ -162,7 +162,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     controller: _nameController,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
-                      labelText: 'Your Display Name',
+                      labelText: 'اسمك المعروض',
                       labelStyle: const TextStyle(color: Colors.white54),
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.08),
@@ -205,7 +205,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ),
                             )
                           : const Text(
-                              'Create Game',
+                              'إنشاء لعبة',
                               style: TextStyle(
                                 fontSize: 17,
                                 fontWeight: FontWeight.w700,
@@ -230,7 +230,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                       ),
                       child: const Text(
-                        'Join Game',
+                        'الانضمام إلى لعبة',
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
@@ -245,7 +245,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     const Padding(
                       padding: EdgeInsets.only(top: 16),
                       child: Text(
-                        'Attempting to rejoin previous game...',
+                        'جاري محاولة إعادة الاتصال...',
                         style: TextStyle(color: Colors.white38, fontSize: 13),
                       ),
                     ),

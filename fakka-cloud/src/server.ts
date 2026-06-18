@@ -22,7 +22,7 @@ const rooms = new RoomManager();
 app.post('/games/create', (req: Request, res: Response) => {
   const { adminName } = req.body;
   if (!adminName || !adminName.trim()) {
-    res.status(400).json({ message: 'adminName is required' });
+    res.status(400).json({ message: 'اسم المسؤول مطلوب' });
     return;
   }
   const result = rooms.createRoom(adminName.trim());
@@ -33,7 +33,7 @@ app.post('/games/:roomId/join', (req: Request, res: Response) => {
   const { roomId } = req.params;
   const { playerName } = req.body;
   if (!playerName || !playerName.trim()) {
-    res.status(400).json({ message: 'playerName is required' });
+    res.status(400).json({ message: 'اسم اللاعب مطلوب' });
     return;
   }
   try {
@@ -50,13 +50,13 @@ app.post('/games/:roomId/start', (req: Request, res: Response) => {
   const { roomId } = req.params;
   const { adminPlayerId } = req.body;
   const room = rooms.getRoom(roomId);
-  if (!room) { res.status(404).json({ message: 'Room not found' }); return; }
+  if (!room) {     res.status(404).json({ message: 'الغرفة غير موجودة' }); return; }
   if (room.adminPlayerId !== adminPlayerId) {
-    res.status(403).json({ message: 'Only admin can start' });
+    res.status(403).json({ message: 'فقط المسؤول يمكنه البدء' });
     return;
   }
   if (room.players.length < 2) {
-    res.status(400).json({ message: 'Need at least 2 players' });
+    res.status(400).json({ message: 'يلزم لاعبان على الأقل' });
     return;
   }
   room.status = 'in_progress';
@@ -135,10 +135,10 @@ wss.on('connection', (ws: WebSocket, req) => {
           }));
           break;
         default:
-          ws.send(JSON.stringify({ event: 'error', data: { message: `Unknown event: ${event}` } }));
+          ws.send(JSON.stringify({ event: 'error', data: { message: `حدث غير معروف: ${event}` } }));
       }
     } catch {
-      ws.send(JSON.stringify({ event: 'error', data: { message: 'Invalid message' } }));
+      ws.send(JSON.stringify({ event: 'error', data: { message: 'صيغة رسالة غير صالحة' } }));
     }
   });
 

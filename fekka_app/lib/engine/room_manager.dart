@@ -73,12 +73,12 @@ class RoomManager {
   ({String playerId, int seatIndex}) joinRoom(
       String roomId, String playerName) {
     final room = _rooms[roomId];
-    if (room == null) throw StateError('Room not found');
+    if (room == null) throw StateError('الغرفة غير موجودة');
     if (room.status != RoomStatus.waiting) {
-      throw StateError('Game is already in progress or finished');
+      throw StateError('اللعبة قيد التقدم أو انتهت بالفعل');
     }
     if (room.players.length >= _maxPlayers) {
-      throw StateError('Room is full (max 4 players)');
+      throw StateError('الغرفة ممتلئة (الحد الأقصى 4 لاعبين)');
     }
 
     final playerId = _uuid.v4();
@@ -96,16 +96,16 @@ class RoomManager {
   /// Start the game. Admin only, all 4 seats required.
   GameState startGame(String roomId, String adminPlayerId, {int? seed}) {
     final room = _rooms[roomId];
-    if (room == null) throw StateError('Room not found');
+    if (room == null) throw StateError('الغرفة غير موجودة');
     if (room.status != RoomStatus.waiting) {
-      throw StateError('Game cannot be started — invalid status');
+      throw StateError('لا يمكن بدء اللعبة — حالة غير صالحة');
     }
     if (room.adminPlayerId != adminPlayerId) {
-      throw StateError('Only the room admin can start the game');
+      throw StateError('فقط مسؤول الغرفة يمكنه بدء اللعبة');
     }
     if (room.players.length != _maxPlayers) {
       throw StateError(
-          'Need exactly $_maxPlayers players to start (currently ${room.players.length})');
+          'يلزم $_maxPlayers لاعبين بالضبط للبدء (حالياً ${room.players.length})');
     }
 
     final playerNames = room.players.map((p) => p.name).toList();
@@ -127,7 +127,7 @@ class RoomManager {
   /// Get current room status.
   ({RoomStatus status, int playerCount}) getRoomStatus(String roomId) {
     final room = _rooms[roomId];
-    if (room == null) throw StateError('Room not found');
+    if (room == null) throw StateError('الغرفة غير موجودة');
     return (status: room.status, playerCount: room.players.length);
   }
 

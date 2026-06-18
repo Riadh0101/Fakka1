@@ -42,7 +42,7 @@ class GameOverScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   const Text(
-                    'Game Over!',
+                    'انتهت اللعبة!',
                     style: TextStyle(
                       fontSize: 34,
                       fontWeight: FontWeight.w900,
@@ -51,7 +51,7 @@ class GameOverScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'After ${state.roundNumber} rounds',
+                    'بعد ${state.roundNumber} جولات',
                     style: const TextStyle(
                       color: Colors.white54,
                       fontSize: 14,
@@ -120,7 +120,7 @@ class GameOverScreen extends ConsumerWidget {
                           ),
                           const SizedBox(width: 4),
                           const Text(
-                            'pts',
+                            'نقطة',
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.white38,
@@ -152,7 +152,7 @@ class GameOverScreen extends ConsumerWidget {
                         elevation: 4,
                       ),
                       child: const Text(
-                        'Play Again',
+                        'العب مرة أخرى',
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w700,

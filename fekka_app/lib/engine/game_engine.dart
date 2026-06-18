@@ -365,17 +365,17 @@ class GameEngine {
     final activePlayers = state.players.where((p) => !p.eliminated).toList();
 
     if (activePlayers.isEmpty) {
-      throw StateError('No active players — game is over');
+      throw StateError('لا يوجد لاعبين نشطين — اللعبة انتهت');
     }
 
     final playerIndex = activePlayers.indexWhere((p) => p.id == playerId);
     if (playerIndex == -1) {
-      throw StateError('Player $playerId is not active or not found');
+      throw StateError('اللاعب $playerId غير نشط أو غير موجود');
     }
 
     if (playerIndex != state.currentPlayerIndex % activePlayers.length) {
       final currentId = activePlayers[state.currentPlayerIndex % activePlayers.length].id;
-      throw StateError("Not player $playerId's turn (current: $currentId)");
+      throw StateError("ليس دور اللاعب $playerId (الدور الحالي: $currentId)");
     }
 
     final player = activePlayers[playerIndex];
@@ -384,7 +384,7 @@ class GameEngine {
     final handIndex = player.hand.indexWhere(
         (c) => c.rank == card.rank && c.suit == card.suit);
     if (handIndex == -1) {
-      throw StateError('Card ${card.rank}${card.suit} not found in hand');
+      throw StateError('الورقة ${card.rank}${card.suit} غير موجودة في اليد');
     }
     player.hand.removeAt(handIndex);
 

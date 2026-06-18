@@ -26,7 +26,7 @@ class HandWidget extends StatelessWidget {
         height: 90,
         child: Center(
           child: Text(
-            'No cards in hand',
+            'لا توجد أوراق في اليد',
             style: TextStyle(color: Colors.white38, fontSize: 13),
           ),
         ),

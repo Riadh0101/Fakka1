@@ -93,7 +93,7 @@ class _GameTableScreenState extends ConsumerState<GameTableScreen> {
                         const SizedBox(height: 8),
                         // Player label
                         Text(
-                          'You  ·  ${state.playerName ?? ""}',
+                          'أنت  ·  ${state.playerName ?? ""}',
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 13,
@@ -166,14 +166,14 @@ class _GameTableScreenState extends ConsumerState<GameTableScreen> {
             children: [
               if (opponents['topLeft'] != null)
                 PlayerPositionWidget(
-                  label: 'Player 2',
+                  label: 'اللاعب 2',
                   player: opponents['topLeft']!,
                   isActive: opponents['topLeft']!.seatIndex ==
                       state.currentPlayerSeat,
                 ),
               if (opponents['topRight'] != null)
                 PlayerPositionWidget(
-                  label: 'Player 3',
+                  label: 'اللاعب 3',
                   player: opponents['topRight']!,
                   isActive: opponents['topRight']!.seatIndex ==
                       state.currentPlayerSeat,
@@ -198,7 +198,7 @@ class _GameTableScreenState extends ConsumerState<GameTableScreen> {
             alignment: Alignment.centerLeft,
             child: opponents['bottomLeft'] != null
                 ? PlayerPositionWidget(
-                    label: 'Player 1',
+                    label: 'اللاعب 1',
                     player: opponents['bottomLeft']!,
                     isActive:
                         opponents['bottomLeft']!.seatIndex ==
@@ -225,7 +225,7 @@ class _GameTableScreenState extends ConsumerState<GameTableScreen> {
             children: [
               if (opponents['topLeft'] != null)
                 PlayerPositionWidget(
-                  label: 'Player 2',
+                  label: 'اللاعب 2',
                   player: opponents['topLeft']!,
                   isActive:
                       opponents['topLeft']!.seatIndex == state.currentPlayerSeat,
@@ -255,7 +255,7 @@ class _GameTableScreenState extends ConsumerState<GameTableScreen> {
           child: Center(
             child: opponents['topRight'] != null
                 ? PlayerPositionWidget(
-                    label: 'Player 3',
+                    label: 'اللاعب 3',
                     player: opponents['topRight']!,
                     isActive: opponents['topRight']!.seatIndex ==
                         state.currentPlayerSeat,
@@ -281,7 +281,7 @@ class _GameTableScreenState extends ConsumerState<GameTableScreen> {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              'Round ${state.roundNumber}',
+              'الجولة ${state.roundNumber}',
               style: const TextStyle(
                 color: Colors.white70,
                 fontSize: 13,
@@ -291,7 +291,7 @@ class _GameTableScreenState extends ConsumerState<GameTableScreen> {
           ),
           // Pool count compact
           Text(
-            'Pool: ${state.poolSize}',
+            'المجمع: ${state.poolSize}',
             style: const TextStyle(
               color: Colors.white38,
               fontSize: 12,
@@ -329,14 +329,14 @@ class _GameTableScreenState extends ConsumerState<GameTableScreen> {
               ),
               const SizedBox(height: 16),
               const Text(
-                'Reconnecting...',
+                'جاري إعادة الاتصال...',
                 style: TextStyle(color: Colors.white, fontSize: 16),
               ),
             ] else ...[
               const Icon(Icons.cloud_off, color: Colors.white54, size: 48),
               const SizedBox(height: 16),
               const Text(
-                'Connection Lost',
+                'انقطع الاتصال',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -353,7 +353,7 @@ class _GameTableScreenState extends ConsumerState<GameTableScreen> {
                   backgroundColor: const Color(0xFFE94560),
                   foregroundColor: Colors.white,
                 ),
-                child: const Text('Leave Game'),
+                child: const Text('مغادرة اللعبة'),
               ),
             ],
           ],
@@ -401,7 +401,7 @@ class _GameTableScreenState extends ConsumerState<GameTableScreen> {
 
   String _getActivePlayerName(GameState state) {
     if (state.currentPlayerSeat == state.seatIndex) {
-      return state.playerName ?? 'You';
+      return state.playerName ?? 'أنت';
     }
     final active = state.opponents
         .where((o) => o.seatIndex == state.currentPlayerSeat)

@@ -54,7 +54,7 @@ class _ScoreSummaryScreenState extends ConsumerState<ScoreSummaryScreen> {
     final myRoundScore = roundScores[state.playerId] ?? 0;
     final myTotalScore = cumulativeScores[state.playerId] ?? 0;
     entries.add(_PlayerScoreEntry(
-      name: state.playerName ?? 'You',
+      name: state.playerName ?? 'أنت',
       roundScore: myRoundScore,
       totalScore: myTotalScore,
       isMe: true,
@@ -74,7 +74,7 @@ class _ScoreSummaryScreenState extends ConsumerState<ScoreSummaryScreen> {
               children: [
                 // Title
                 Text(
-                  'Round ${state.roundNumber} Results',
+                  'نتائج الجولة ${state.roundNumber}',
                   style: const TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
@@ -180,7 +180,7 @@ class _ScoreSummaryScreenState extends ConsumerState<ScoreSummaryScreen> {
                       ),
                     ),
                     child: const Text(
-                      'Continue',
+                      'متابعة',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -190,7 +190,7 @@ class _ScoreSummaryScreenState extends ConsumerState<ScoreSummaryScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Auto-continuing in a few seconds...',
+                  'المتابعة التلقائية خلال ثوان...',
                   style: TextStyle(color: Colors.white24, fontSize: 12),
                 ),
               ],

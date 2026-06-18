@@ -95,7 +95,7 @@ class FakkaServer {
       if (method == 'POST' && segments.length == 2 && segments[0] == 'games' && segments[1] == 'create') {
         final adminName = body?['adminName'] as String?;
         if (adminName == null || adminName.isEmpty) {
-          _sendError(request.response, 400, 'adminName is required');
+          _sendError(request.response, 400, 'اسم المسؤول مطلوب');
           return;
         }
         final result = _roomManager.createRoom(adminName);
@@ -112,7 +112,7 @@ class FakkaServer {
         final roomId = segments[1];
         final playerName = body?['playerName'] as String?;
         if (playerName == null || playerName.isEmpty) {
-          _sendError(request.response, 400, 'playerName is required');
+          _sendError(request.response, 400, 'اسم اللاعب مطلوب');
           return;
         }
         try {
@@ -133,7 +133,7 @@ class FakkaServer {
         final roomId = segments[1];
         final adminPlayerId = body?['adminPlayerId'] as String?;
         if (adminPlayerId == null) {
-          _sendError(request.response, 400, 'adminPlayerId is required');
+          _sendError(request.response, 400, 'معرف المسؤول مطلوب');
           return;
         }
         final seed = body?['seed'] as int?;
@@ -165,11 +165,11 @@ class FakkaServer {
       }
 
       // 404.
-      _sendError(request.response, 404, 'Not found: $method $path');
+      _sendError(request.response, 404, 'غير موجود: $method $path');
     } catch (e, st) {
       print('[FakkaServer] Unhandled error: $e\n$st');
       try {
-        _sendError(request.response, 500, 'Internal server error');
+        _sendError(request.response, 500, 'خطأ داخلي في الخادم');
       } catch (_) {}
     }
   }
@@ -246,10 +246,10 @@ class FakkaServer {
           _handleGetState(ws, roomId, playerId);
           break;
         default:
-          _sendWsError(ws, 'Unknown event: $event');
+          _sendWsError(ws, 'حدث غير معروف: $event');
       }
     } catch (e) {
-      _sendWsError(ws, 'Invalid message format: $e');
+      _sendWsError(ws, 'صيغة رسالة غير صالحة: $e');
     }
   }
 
@@ -262,7 +262,7 @@ class FakkaServer {
       final suit = data['suit'] as String?;
 
       if (rank == null || suit == null) {
-        _sendWsError(_clients['$roomId:$playerId']!, 'Invalid card data');
+        _sendWsError(_clients['$roomId:$playerId']!, 'بيانات الورقة غير صالحة');
         return;
       }
 
@@ -338,12 +338,12 @@ class FakkaServer {
   void _handleRejoin(WebSocket ws, String roomId, String playerId) {
     // Validate room and player membership.
     if (!_roomManager.roomExists(roomId)) {
-      _sendWsError(ws, 'Room not found');
+      _sendWsError(ws, 'الغرفة غير موجودة');
       return;
     }
     final player = _roomManager.getPlayer(roomId, playerId);
     if (player == null) {
-      _sendWsError(ws, 'Player not in this room');
+      _sendWsError(ws, 'اللاعب غير موجود في هذه الغرفة');
       return;
     }
 
@@ -409,7 +409,7 @@ class FakkaServer {
 
     _broadcastToRoom(roomId, 'player_disconnected', {
       'playerId': playerId,
-      'message': 'Player disconnected',
+      'message': 'انقطع اتصال اللاعب',
     });
   }
 

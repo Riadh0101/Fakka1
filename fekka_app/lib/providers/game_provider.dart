@@ -84,7 +84,7 @@ class GameNotifier extends StateNotifier<GameState> {
     } on ApiException catch (e) {
       state = state.copyWith(errorMessage: e.message, clearError: false);
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Unexpected error: $e',
+      state = state.copyWith(errorMessage: 'خطأ غير متوقع: $e',
           clearError: false);
     }
   }
@@ -114,7 +114,7 @@ class GameNotifier extends StateNotifier<GameState> {
     } on ApiException catch (e) {
       state = state.copyWith(errorMessage: e.message, clearError: false);
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Unexpected error: $e',
+      state = state.copyWith(errorMessage: 'خطأ غير متوقع: $e',
           clearError: false);
     }
   }
@@ -130,7 +130,7 @@ class GameNotifier extends StateNotifier<GameState> {
     } on ApiException catch (e) {
       state = state.copyWith(errorMessage: e.message, clearError: false);
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Unexpected error: $e',
+      state = state.copyWith(errorMessage: 'خطأ غير متوقع: $e',
           clearError: false);
     }
   }
@@ -171,7 +171,7 @@ class GameNotifier extends StateNotifier<GameState> {
     final incoming = StateAdapter.fromEngineStateSync(
       data,
       playerId: state.playerId ?? const Uuid().v4(),
-      playerName: state.playerName ?? 'Player',
+      playerName: state.playerName ?? 'لاعب',
       seatIndex: state.seatIndex,
     );
 
@@ -195,7 +195,7 @@ class GameNotifier extends StateNotifier<GameState> {
     final incoming = StateAdapter.fromEngineStateUpdate(
       data,
       playerId: state.playerId ?? '',
-      playerName: state.playerName ?? 'Player',
+      playerName: state.playerName ?? 'لاعب',
       seatIndex: state.seatIndex,
     );
 
@@ -288,7 +288,7 @@ class GameNotifier extends StateNotifier<GameState> {
   void _onSocketError(dynamic data) {
     String message;
     if (data is Map<String, dynamic>) {
-      message = data['message'] as String? ?? 'Unknown socket error';
+      message = data['message'] as String? ?? 'خطأ غير معروف في الاتصال';
     } else if (data is String) {
       message = data;
     } else {

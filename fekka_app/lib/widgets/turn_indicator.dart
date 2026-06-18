@@ -35,7 +35,7 @@ class TurnIndicator extends StatelessWidget {
           _PulsingDot(isActive: isMyTurn),
           const SizedBox(width: 8),
           Text(
-            isMyTurn ? 'YOUR TURN' : "$activePlayerName's turn",
+            isMyTurn ? 'دورك' : "دور $activePlayerName",
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,

@@ -52,7 +52,7 @@ class LobbyScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 // Header
                 const Text(
-                  'Game Lobby',
+                  'ردهة اللعبة',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
@@ -76,7 +76,7 @@ class LobbyScreen extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text(
-                        'Room: ',
+                        'الغرفة: ',
                         style: TextStyle(
                           color: Colors.white54,
                           fontSize: 16,
@@ -99,7 +99,7 @@ class LobbyScreen extends ConsumerWidget {
                                 ClipboardData(text: state.roomId!));
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Room code copied!'),
+                                content: Text('تم نسخ رمز الغرفة!'),
                                 duration: Duration(seconds: 1),
                               ),
                             );
@@ -124,7 +124,7 @@ class LobbyScreen extends ConsumerWidget {
                   child: OutlinedButton.icon(
                     onPressed: () => _shareRoomCode(state.roomId),
                     icon: const Icon(Icons.share, size: 18),
-                    label: const Text('Share Room Code'),
+                    label: const Text('مشاركة رمز الغرفة'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white70,
                       side: const BorderSide(color: Colors.white24),
@@ -141,7 +141,7 @@ class LobbyScreen extends ConsumerWidget {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Players (${state.lobbyPlayers.length}/4)',
+                    'اللاعبون (${state.lobbyPlayers.length}/4)',
                     style: const TextStyle(
                       color: Colors.white54,
                       fontSize: 13,
@@ -181,8 +181,8 @@ class LobbyScreen extends ConsumerWidget {
                                 ),
                                 child: Text(
                                   canStart
-                                      ? 'Start Game'
-                                      : 'Waiting for players...',
+                                      ? 'ابدأ اللعبة'
+                                      : 'في انتظار اللاعبين...',
                                   style: const TextStyle(
                                     fontSize: 17,
                                     fontWeight: FontWeight.w700,
@@ -206,7 +206,7 @@ class LobbyScreen extends ConsumerWidget {
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
-                                child: const Text('Leave Game'),
+                                child: const Text('مغادرة اللعبة'),
                               ),
                             ),
                           ],
@@ -226,7 +226,7 @@ class LobbyScreen extends ConsumerWidget {
                                       color: Colors.white38, size: 18),
                                   SizedBox(width: 8),
                                   Text(
-                                    'Waiting for host to start...',
+                                    'في انتظار أن يبدأ المضيف...',
                                     style: TextStyle(
                                       color: Colors.white38,
                                       fontSize: 15,
@@ -251,7 +251,7 @@ class LobbyScreen extends ConsumerWidget {
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                 ),
-                                child: const Text('Leave Game'),
+                                child: const Text('مغادرة اللعبة'),
                               ),
                             ),
                           ],
@@ -292,7 +292,7 @@ class LobbyScreen extends ConsumerWidget {
   void _shareRoomCode(String? roomId) {
     if (roomId == null) return;
     SharePlus.instance.share(
-      ShareParams(text: 'Join my Fakka game! Room code: $roomId'),
+      ShareParams(text: 'انضم إلى لعبة الفكة! رمز الغرفة: $roomId'),
     );
   }
 }
@@ -357,7 +357,7 @@ class _PlayerSeatTile extends StatelessWidget {
           // Player name or empty slot label
           Expanded(
             child: Text(
-              isOccupied ? player!.name : 'Empty seat',
+              isOccupied ? player!.name : 'مقعد فارغ',
               style: TextStyle(
                 color: isOccupied ? Colors.white : Colors.white24,
                 fontSize: 15,
@@ -377,7 +377,7 @@ class _PlayerSeatTile extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Text(
-                  'YOU',
+                  'أنت',
                   style: TextStyle(
                     fontSize: 11,
                     color: Color(0xFFE94560),

@@ -81,7 +81,7 @@ class SocketService {
       _onConnectionChangeController.add(false);
       _onErrorController.add({
         'type': 'connection_error',
-        'message': 'Failed to connect: $e',
+        'message': 'فشل الاتصال: $e',
       });
     }
   }
@@ -228,7 +228,7 @@ class SocketService {
         if (!_connected) {
           _onErrorController.add({
             'type': 'connection_lost',
-            'message': 'Connection lost. Please leave and rejoin.',
+            'message': 'انقطع الاتصال. الرجاء المغادرة وإعادة الانضمام.',
           });
         }
       },

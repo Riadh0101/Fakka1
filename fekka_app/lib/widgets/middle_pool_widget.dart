@@ -21,7 +21,7 @@ class MiddlePoolWidget extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         const Text(
-          'POOL',
+          'المجمع',
           style: TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,
@@ -61,7 +61,7 @@ class MiddlePoolWidget extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
-            '$poolSize card${poolSize == 1 ? '' : 's'}',
+            '$poolSize ${poolSize == 1 ? 'ورقة' : 'ورقات'}',
             style: const TextStyle(
               fontSize: 12,
               color: Colors.white70,

@@ -102,7 +102,7 @@ class PlayerPositionWidget extends StatelessWidget {
             ),
             // Score
             Text(
-              'Score: ${player.cumulativeScore}',
+              'النقاط: ${player.cumulativeScore}',
               style: const TextStyle(
                 fontSize: 10,
                 color: Colors.white54,
@@ -122,7 +122,7 @@ class PlayerPositionWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: const Text(
-        'OUT',
+        'خارج',
         style: TextStyle(fontSize: 11, color: Colors.redAccent, fontWeight: FontWeight.bold),
       ),
     );

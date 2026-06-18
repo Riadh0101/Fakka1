@@ -29,12 +29,12 @@ class ApiService {
       }
 
       final error = _extractError(response);
-      throw ApiException('Failed to create room: $error',
+      throw ApiException('فشل إنشاء الغرفة: $error',
           statusCode: response.statusCode);
     } catch (e) {
       developer.log('❌ Error: $e', name: 'API');
       if (e is SocketException) {
-        throw ApiException('Cannot connect to game server. Make sure the server is running.');
+        throw ApiException('تعذر الاتصال بالخادم. تأكد من أن الخادم قيد التشغيل.');
       }
       rethrow;
     }
@@ -60,7 +60,7 @@ class ApiService {
     }
 
     final error = _extractError(response);
-    throw ApiException('Failed to join room: $error',
+    throw ApiException('فشل الانضمام إلى الغرفة: $error',
         statusCode: response.statusCode);
   }
 
@@ -83,16 +83,16 @@ class ApiService {
     }
 
     final error = _extractError(response);
-    throw ApiException('Failed to start game: $error',
+    throw ApiException('فشل بدء اللعبة: $error',
         statusCode: response.statusCode);
   }
 
   String _extractError(http.Response response) {
     try {
       final body = jsonDecode(response.body);
-      return body['message'] as String? ?? response.reasonPhrase ?? 'Unknown error';
+      return body['message'] as String? ?? response.reasonPhrase ?? 'خطأ غير معروف';
     } catch (_) {
-      return response.reasonPhrase ?? 'Unknown error (${response.statusCode})';
+      return response.reasonPhrase ?? 'خطأ غير معروف (${response.statusCode})';
     }
   }
 

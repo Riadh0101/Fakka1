@@ -57,13 +57,13 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
 
     if (roomCode.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a room code')),
+        const SnackBar(content: Text('الرجاء إدخال رمز الغرفة')),
       );
       return;
     }
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your name')),
+        const SnackBar(content: Text('الرجاء إدخال اسمك')),
       );
       return;
     }
@@ -82,13 +82,13 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
       );
     } else if (state.errorMessage != null) {
       String displayMsg = state.errorMessage!;
-      // Map common server errors to user-friendly messages
-      if (displayMsg.toLowerCase().contains('not found')) {
-        displayMsg = 'Room not found. Check the code and try again.';
-      } else if (displayMsg.toLowerCase().contains('full')) {
-        displayMsg = 'Room is full (4/4 players).';
-      } else if (displayMsg.toLowerCase().contains('started')) {
-        displayMsg = 'Game has already started.';
+      // Map common server errors to user-friendly messages (supports Arabic and English)
+      if (displayMsg.contains('غير موجودة') || displayMsg.toLowerCase().contains('not found')) {
+        displayMsg = 'الغرفة غير موجودة. تحقق من الرمز وحاول مرة أخرى.';
+      } else if (displayMsg.contains('ممتلئة') || displayMsg.toLowerCase().contains('full')) {
+        displayMsg = 'الغرفة ممتلئة (4/4 لاعبين).';
+      } else if (displayMsg.contains('بدأت') || displayMsg.toLowerCase().contains('started')) {
+        displayMsg = 'اللعبة قد بدأت بالفعل.';
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -132,7 +132,7 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
                 ),
                 const SizedBox(height: 20),
                 const Text(
-                  'Join Game',
+                  'الانضمام إلى لعبة',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w800,
@@ -141,7 +141,7 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Enter the room code shared by your friend',
+                  'أدخل رمز الغرفة الذي شاركه صديقك',
                   style: TextStyle(color: Colors.white54, fontSize: 14),
                   textAlign: TextAlign.center,
                 ),
@@ -160,7 +160,7 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
                   ),
                   textAlign: TextAlign.center,
                   decoration: InputDecoration(
-                    hintText: 'ROOM CODE',
+                    hintText: 'رمز الغرفة',
                     hintStyle: TextStyle(
                       color: Colors.white.withOpacity(0.2),
                       fontSize: 24,
@@ -188,7 +188,7 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
                   controller: _nameController,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
-                    labelText: 'Your Display Name',
+                    labelText: 'اسمك المعروض',
                     labelStyle: const TextStyle(color: Colors.white54),
                     filled: true,
                     fillColor: Colors.white.withOpacity(0.08),
@@ -231,7 +231,7 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
                             ),
                           )
                         : const Text(
-                            'Join',
+                            'انضمام',
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w700,
