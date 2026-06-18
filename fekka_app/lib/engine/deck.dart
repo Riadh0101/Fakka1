@@ -109,7 +109,8 @@ class Deck {
     }
 
     _cards = gathered;
-    shuffle(); // Auto-incremented seed derivative
+    // Keep shuffles deterministic when the deck was created with a seed.
+    shuffle(_seed != null ? _seed! + _shuffleCount : null);
   }
 
   /// Number of cards left.

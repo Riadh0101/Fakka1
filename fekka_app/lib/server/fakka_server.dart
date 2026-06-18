@@ -44,7 +44,9 @@ class FakkaServer {
 
   /// Stop the server.
   Future<void> stop() async {
-    for (final ws in _clients.values) {
+    // Iterate a snapshot to avoid ConcurrentModificationError if a delayed
+    // cleanup (e.g. after game_over) mutates [_clients] while we are closing.
+    for (final ws in _clients.values.toList()) {
       await ws.close();
     }
     _clients.clear();
@@ -133,7 +135,9 @@ class FakkaServer {
           return;
         }
         try {
-          final state = _roomManager.startGame(roomId, adminPlayerId);
+          // Optional deterministic seed for integration/QA testing.
+          final seed = body?['seed'] as int?;
+          final state = _roomManager.startGame(roomId, adminPlayerId, seed: seed);
           final sanitized = _roomManager.engine.sanitizeForPlayer(state, adminPlayerId);
           _sendJson(request.response, 200, sanitized.toJson());
           // Broadcast init to all connected players.
