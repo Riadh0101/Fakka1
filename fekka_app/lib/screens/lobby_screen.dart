@@ -160,55 +160,101 @@ class LobbyScreen extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 24),
                   child: isAdmin
-                      ? SizedBox(
-                          width: double.infinity,
-                          height: 52,
-                          child: ElevatedButton(
-                            onPressed: canStart
-                                ? () =>
-                                    ref.read(gameProvider.notifier).startGame()
-                                : null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: canStart
-                                  ? const Color(0xFFE94560)
-                                  : Colors.grey.shade700,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ),
-                            child: Text(
-                              canStart
-                                  ? 'Start Game'
-                                  : 'Waiting for players...',
-                              style: const TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        )
-                      : Container(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          decoration: BoxDecoration(
-                            color: Colors.amber.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.hourglass_bottom,
-                                  color: Colors.white38, size: 18),
-                              SizedBox(width: 8),
-                              Text(
-                                'Waiting for host to start...',
-                                style: TextStyle(
-                                  color: Colors.white38,
-                                  fontSize: 15,
+                      ? Column(
+                          children: [
+                            SizedBox(
+                              width: double.infinity,
+                              height: 52,
+                              child: ElevatedButton(
+                                onPressed: canStart
+                                    ? () =>
+                                        ref.read(gameProvider.notifier).startGame()
+                                    : null,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: canStart
+                                      ? const Color(0xFFE94560)
+                                      : Colors.grey.shade700,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                child: Text(
+                                  canStart
+                                      ? 'Start Game'
+                                      : 'Waiting for players...',
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 44,
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  ref.read(gameProvider.notifier).leaveGame();
+                                  Navigator.of(context).pop();
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.white38,
+                                  side: const BorderSide(color: Colors.white12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: const Text('Leave Game'),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Column(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.hourglass_bottom,
+                                      color: Colors.white38, size: 18),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Waiting for host to start...',
+                                    style: TextStyle(
+                                      color: Colors.white38,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 44,
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  ref.read(gameProvider.notifier).leaveGame();
+                                  Navigator.of(context).pop();
+                                },
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.white38,
+                                  side: const BorderSide(color: Colors.white12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: const Text('Leave Game'),
+                              ),
+                            ),
+                          ],
                         ),
                 ),
               ],

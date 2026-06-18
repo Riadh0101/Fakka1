@@ -154,6 +154,15 @@ class GameNotifier extends StateNotifier<GameState> {
     state = state.copyWith(clearError: true);
   }
 
+  /// Leaves the current game and disconnects.
+  void leaveGame() {
+    _socket.disconnect();
+    _server?.stop();
+    _server = null;
+    AppConfig.isHost = false;
+    state = const GameState();
+  }
+
   // ---- Socket Event Handlers ----
 
   void _onStateSync(dynamic data) {

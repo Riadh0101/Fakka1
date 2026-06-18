@@ -149,11 +149,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const SizedBox(height: 4),
                   const SizedBox(height: 8),
                   const Text(
-                    'Schkobba 40',
+                    '\u0625\u0644\u0641\u0643\u0629 \u0639\u0644\u0649 \u0637\u0631\u064a\u0642\u0629 \u0627\u0644\u0645\u0643\u0646\u064a\u0646',
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.white54,
-                      letterSpacing: 4,
                     ),
                   ),
                   const SizedBox(height: 48),
