@@ -40,19 +40,19 @@ class HandWidget extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: List.generate(cards.length, (i) {
           final card = cards[i];
-          return Padding(
-            padding: EdgeInsets.only(
-              left: i > 0 ? -12 : 0, // slight overlap
-            ),
-            child: CardWidget(
-              card: card,
-              width: 60,
-              height: 90,
-              elevated: isMyTurn,
-              onTap: isMyTurn && onCardTap != null
-                  ? () => onCardTap!(i)
-                  : null,
-            ),
+          final widget = CardWidget(
+            card: card,
+            width: 60,
+            height: 90,
+            elevated: isMyTurn,
+            onTap: isMyTurn && onCardTap != null
+                ? () => onCardTap!(i)
+                : null,
+          );
+          if (i == 0) return widget;
+          return Transform.translate(
+            offset: const Offset(-12, 0),
+            child: widget,
           );
         }),
       ),
