@@ -50,7 +50,7 @@ app.post('/games/:roomId/start', (req: Request, res: Response) => {
   const { roomId } = req.params;
   const { adminPlayerId } = req.body;
   const room = rooms.getRoom(roomId);
-  if (!room) {     res.status(404).json({ message: 'الغرفة غير موجودة' }); return; }
+  if (!room) { res.status(404).json({ message: 'الغرفة غير موجودة' }); return; }
   if (room.adminPlayerId !== adminPlayerId) {
     res.status(403).json({ message: 'فقط المسؤول يمكنه البدء' });
     return;
@@ -59,9 +59,23 @@ app.post('/games/:roomId/start', (req: Request, res: Response) => {
     res.status(400).json({ message: 'يلزم لاعبان على الأقل' });
     return;
   }
-  room.status = 'in_progress';
-  broadcastToRoom(roomId, 'state_sync', { roomStatus: 'in_progress', message: 'Game starting' });
-  res.json({ started: true });
+  try {
+    rooms.startGameEngine(roomId);
+    // Send sanitized state_sync to each connected player
+    for (const player of room.players) {
+      const clientKey = `${roomId}:${player.playerId}`;
+      const client = clients.get(clientKey);
+      if (client && client.ws.readyState === WebSocket.OPEN) {
+        const safe = rooms.sanitizeForPlayer(roomId, player.playerId);
+        if (safe) {
+          client.ws.send(JSON.stringify({ event: 'state_sync', data: safe }));
+        }
+      }
+    }
+    res.json({ started: true });
+  } catch (e: any) {
+    res.status(400).json({ message: e.message });
+  }
 });
 
 app.post('/games/:roomId/leave', (req: Request, res: Response) => {
@@ -141,11 +155,84 @@ wss.on('connection', (ws: WebSocket, req) => {
       const { event, data } = msg;
       switch (event) {
         case 'play_card':
-          broadcastToRoom(roomId, 'state_update', {
-            action: 'played',
-            playedBy: playerId,
-            card: data,
-          });
+          try {
+            const cardData = data as { rank?: string; suit?: string };
+            if (!cardData.rank || !cardData.suit) {
+              ws.send(JSON.stringify({ event: 'error', data: { message: 'بيانات الورقة غير صالحة' } }));
+              break;
+            }
+            const result = rooms.processTurn(roomId, playerId, { rank: cardData.rank, suit: cardData.suit });
+
+            // Broadcast capture_event to all in room
+            if (result.action !== 'discard') {
+              broadcastToRoom(roomId, 'capture_event', {
+                activePlayerId: playerId,
+                action: result.action,
+                poolCaptured: result.poolCaptured,
+                stolenFrom: result.stolenFrom,
+                playedCard: result.playedCard,
+              });
+            }
+
+            // Send sanitized state_update to each player
+            const room = rooms.getRoom(roomId);
+            if (room) {
+              for (const player of room.players) {
+                const clientKey = `${roomId}:${player.playerId}`;
+                const client = clients.get(clientKey);
+                if (client && client.ws.readyState === WebSocket.OPEN) {
+                  const safe = rooms.sanitizeForPlayer(roomId, player.playerId);
+                  if (safe) {
+                    client.ws.send(JSON.stringify({ event: 'state_update', data: safe }));
+                  }
+                }
+              }
+            }
+
+            // Handle round end
+            if (result.roundEnded) {
+              const endResult = rooms.processRoundEnd(roomId);
+
+              // Send round_end with scores
+              const scoresPayload = endResult.newState.players.map(p => ({
+                playerId: p.id,
+                cumulativeScore: p.cumulativeScore,
+              }));
+              broadcastToRoom(roomId, 'round_end', { scores: scoresPayload });
+
+              if (endResult.newState.gameOver) {
+                // Game over
+                const rankings = [...endResult.newState.players]
+                  .sort((a, b) => (a.rankEarned ?? 99) - (b.rankEarned ?? 99))
+                  .map(p => ({
+                    playerId: p.id,
+                    playerName: p.name,
+                    rank: p.rankEarned ?? 99,
+                    score: p.cumulativeScore,
+                  }));
+                broadcastToRoom(roomId, 'game_over', { rankings });
+                if (room) room.status = 'finished';
+              } else {
+                // Setup next round
+                const nextState = rooms.setupNextRound(roomId);
+                // Send state_sync with new round
+                if (room) {
+                  for (const player of room.players) {
+                    const clientKey = `${roomId}:${player.playerId}`;
+                    const client = clients.get(clientKey);
+                    if (client && client.ws.readyState === WebSocket.OPEN) {
+                      const safe = rooms.sanitizeForPlayer(roomId, player.playerId);
+                      if (safe) {
+                        client.ws.send(JSON.stringify({ event: 'state_sync', data: safe }));
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } catch (e: any) {
+            ws.send(JSON.stringify({ event: 'error', data: { message: e.message } }));
+          }
           break;
         case 'leave_room':
           try {
@@ -161,10 +248,18 @@ wss.on('connection', (ws: WebSocket, req) => {
           }
           break;
         case 'get_state':
-          ws.send(JSON.stringify({
-            event: 'state_sync',
-            data: { roomStatus: rooms.getRoom(roomId)?.status },
-          }));
+          const gameState = rooms.getGameState(roomId);
+          if (gameState) {
+            const safe = rooms.sanitizeForPlayer(roomId, playerId);
+            if (safe) {
+              ws.send(JSON.stringify({ event: 'state_sync', data: safe }));
+            }
+          } else {
+            ws.send(JSON.stringify({
+              event: 'state_sync',
+              data: { roomStatus: rooms.getRoom(roomId)?.status },
+            }));
+          }
           break;
         default:
           ws.send(JSON.stringify({ event: 'error', data: { message: `حدث غير معروف: ${event}` } }));

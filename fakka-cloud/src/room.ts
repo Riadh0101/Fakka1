@@ -1,4 +1,6 @@
 import { v4 } from 'uuid';
+import { GameEngine } from './engine';
+import type { GameState, TurnResult } from './engine';
 
 function generateRoomCode(): string {
   return String(Math.floor(1000 + Math.random() * 9000));
@@ -21,6 +23,14 @@ export interface RoomData {
 const rooms = new Map<string, RoomData>();
 
 export class RoomManager {
+  private gameStates = new Map<string, GameState>();
+
+  private _engine?: GameEngine;
+  get engine(): GameEngine {
+    if (!this._engine) this._engine = new GameEngine();
+    return this._engine;
+  }
+
   createRoom(adminName: string): { roomId: string; adminPlayerId: string } {
     const roomId = generateRoomCode();
     const adminPlayerId = v4().replace(/-/g, '').slice(0, 8);
@@ -101,5 +111,55 @@ export class RoomManager {
     return { removed: true, newAdminId };
   }
 
-  deleteRoom(roomId: string): void { rooms.delete(roomId); }
+  // ── Game Engine Integration ────────────────────────────────────────────
+
+  startGameEngine(roomId: string): GameState {
+    const room = rooms.get(roomId);
+    if (!room) throw new Error('الغرفة غير موجودة');
+    const playerIds = room.players.map(p => p.playerId);
+    const playerNames = room.players.map(p => p.name);
+    const state = this.engine.createInitialState(roomId, playerNames, playerIds);
+    this.gameStates.set(roomId, state);
+    room.status = 'in_progress';
+    return state;
+  }
+
+  processTurn(roomId: string, playerId: string, card: { rank: string; suit: string }): TurnResult {
+    const state = this.gameStates.get(roomId);
+    if (!state) throw new Error('اللعبة لم تبدأ بعد');
+    const result = this.engine.processTurn(state, playerId, card);
+    this.gameStates.set(roomId, result.newState);
+    return result;
+  }
+
+  processRoundEnd(roomId: string): TurnResult {
+    const state = this.gameStates.get(roomId);
+    if (!state) throw new Error('اللعبة لم تبدأ بعد');
+    const result = this.engine.processRoundEnd(state);
+    this.gameStates.set(roomId, result.newState);
+    return result;
+  }
+
+  setupNextRound(roomId: string): GameState {
+    const state = this.gameStates.get(roomId);
+    if (!state) throw new Error('اللعبة لم تبدأ بعد');
+    const next = this.engine.setupRound(state);
+    this.gameStates.set(roomId, next);
+    return next;
+  }
+
+  getGameState(roomId: string): GameState | undefined {
+    return this.gameStates.get(roomId);
+  }
+
+  sanitizeForPlayer(roomId: string, playerId: string): GameState | undefined {
+    const state = this.gameStates.get(roomId);
+    if (!state) return undefined;
+    return this.engine.sanitizeForPlayer(state, playerId);
+  }
+
+  deleteRoom(roomId: string): void {
+    rooms.delete(roomId);
+    this.gameStates.delete(roomId);
+  }
 }
