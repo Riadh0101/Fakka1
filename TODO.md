@@ -1,34 +1,42 @@
 # FAKKA (Schkobba 40) — Master Tracker
 
-> **Status**: Embedded server architecture complete — engine ported to Dart, server runs on host phone.  
-> **Last updated**: June 17, 2026
+> **Status**: Playable — cloud server with game engine deployed on Render, Flutter app with full Arabic UI.  
+> **Last updated**: June 20, 2026  
+> **Server**: https://fakka1.onrender.com  
 
 ---
 
 ## PROJECT STRUCTURE
 
 ```
-D:\Fakka\
+D:\Fakka1\
 ├── TODO.md                                    ← This file
-├── Fekka_Multiplayer_App_Implementation_Prompt.txt
-├── fakka_App.apk                              ← Latest APK (hotspot: 192.168.137.1)
-├── fekka_cli\fekka.py                         ← Phase 1: Python engine
-├── fekka_server\                              ← Phase 2: NestJS backend (legacy — replaced by embedded)
-├── fekka_app\                                 ← Phase 3: Flutter app with embedded server
-│   └── lib\
-│       ├── engine\                            ← Pure Dart game engine (ported from TS)
-│       │   ├── card.dart
-│       │   ├── card_adapter.dart              ← UI ↔ engine Card conversion
-│       │   ├── deck.dart
-│       │   ├── player_stack.dart
-│       │   ├── middle_pool.dart
-│       │   ├── game_engine.dart
-│       │   └── room_manager.dart
-│       └── server\
-│           └── fakka_server.dart              ← Embedded HTTP+WS server (dart:io)
-├── open_firewall.bat
-├── fix_network.bat
-├── connection_guide.bat
+├── fekka_cli\fekka.py                         ← Phase 1: Python engine + 36 tests
+├── fekka_server\                              ← Phase 2: NestJS backend (legacy)
+├── fekka_app\                                 ← Phase 3: Flutter app
+│   ├── lib\
+│   │   ├── engine\                            ← Pure Dart game engine
+│   │   │   ├── card.dart, deck.dart, player_stack.dart, middle_pool.dart
+│   │   │   ├── game_engine.dart, room_manager.dart
+│   │   │   └── card_adapter.dart, state_adapter.dart
+│   │   ├── screens\                           ← 6 screens (home, join, lobby, game_table, score_summary, game_over)
+│   │   ├── widgets\                           ← card, hand, middle_pool, player_position, turn_indicator
+│   │   ├── providers\game_provider.dart       ← Riverpod state management
+│   │   ├── services\                          ← api_service.dart, socket_service.dart
+│   │   └── server\fakka_server.dart           ← Embedded Dart server (fallback)
+│   ├── test\
+│   │   ├── engine\game_engine_test.dart       ← 40 tests
+│   │   ├── engine\room_manager_test.dart      ← 58 tests
+│   │   └── server\fakka_server_integration.dart ← E2E test
+│   └── build_apk.ps1                          ← Auto-incrementing build script
+├── fakka-cloud\                               ← Phase 3: Cloud server (PRODUCTION)
+│   ├── src\
+│   │   ├── engine\                            ← TypeScript game engine
+│   │   ├── server.ts                          ← Express + WebSocket server
+│   │   └── room.ts                            ← Room manager + engine integration
+│   └── render.yaml                            ← Render deploy config
+├── bot_test.js                                ← Auto-play bot for testing
+├── qa_comprehensive_tests.py                  ← QA edge case suite (903 lines)
 └── build_apk.ps1
 ```
 
@@ -36,131 +44,107 @@ D:\Fakka\
 
 ## ✅ DONE
 
-### Phase 1 — Python CLI Engine
-- [x] Card, Deck, PlayerStack, MiddlePool classes
-- [x] Player + GameManager + combined capture logic
-- [x] Sequential reveal cascade algorithm
-- [x] 36 unit tests + 12 required scenarios
-- [x] 100-game smoke test (0 exceptions)
-- [x] QA audit passed
+### Core Gameplay
+- [x] Full game engine: 40-card deck, deal, sequential-reveal capture, stack steals, combined capture
+- [x] Turn-based play with turn indicator ("دورك" / "دور X")
+- [x] Round scoring: J/Q/K=2pts, numerals=1pt, cumulative tracking
+- [x] Elimination at 51pts, ranking by score desc
+- [x] 12 rounds per game, auto-deal, deck recycling
+- [x] Cloud server handles all game logic server-authoritatively
 
-### Phase 2 — Backend (NestJS) — LEGACY
-- [x] GameEngineService ported to TypeScript (38 Jest tests)
-- [x] GameRoomService + InMemoryRoomRepository + RoomRedisRepository
-- [x] FekkaGateway (Socket.IO namespaced per room)
-- [x] REST endpoints: POST /games/create, /join, /start
-- [x] SQLite instead of PostgreSQL
-- [x] In-memory fallback when Redis unavailable
+### Cloud Server (fakka-cloud on Render)
+- [x] Deployed at https://fakka1.onrender.com
+- [x] REST: POST /games/create, /join, /start, /leave, GET /status
+- [x] WebSocket: /game with state_sync, state_update, capture_event, round_end, game_over
+- [x] Game engine fully integrated (processTurn, processRoundEnd, setupNextRound)
+- [x] Per-player sanitized state (opponent hands/stacks hidden)
+- [x] 4-digit numeric room codes (1000-9999)
+- [x] Connected-player-only join limit (disconnected players don't block)
+- [x] Leave room + seat re-indexing + admin transfer
 
-### Phase 3 — Embedded Server Architecture (June 17)
-- [x] Dart game engine ported from TypeScript (card, deck, player_stack, middle_pool, game_engine, room_manager)
-- [x] Card adapter: UI GameCard (int rank, word suit) ↔ engine Card (string rank, symbol suit)
-- [x] Embedded HTTP+WS server (dart:io HttpServer + WebSocket, port 3000)
-- [x] REST endpoints: POST /games/create, /games/:id/join, /games/:id/start, GET /games/:id/status
-- [x] WebSocket namespace /game with JSON event protocol
-- [x] config.dart updated for host/guest dynamic URLs
-- [x] socket_service.dart replaced socket_io_client with raw dart:io WebSocket
-- [x] api_service.dart uses dynamic AppConfig.apiUrl
-- [x] game_provider.dart starts FakkaServer when hosting, sets isHost flag
-- [x] app.dart parses `host` query param from deep links
-- [x] join_screen.dart handles Map arguments (roomId + hostIp) from deep links
-- [x] lobby_screen.dart detects device IP, includes host in share invite link
+### Flutter App (build #18, yellow)
+- [x] Full Arabic UI: all screens, buttons, labels, errors, notifications
+- [x] Home screen: Fakka logo, name input, Create/Join buttons, Quit (خروج)
+- [x] Join screen: room code entry, deep link support
+- [x] Lobby: player list (4 seats), share room code, admin start, live refresh
+- [x] GameTable: live opponent names, stack top, hand count, active player glow
+- [x] Capture notifications: amber toast "أنت التقطت N ورقة"
+- [x] Score summary screen after each round
+- [x] Game over screen with trophies and rankings
+- [x] Turn indicator with pulsing dot
+- [x] Card overlap using Transform (no crash)
+- [x] Mid-game rejoin with state restore
+- [x] Stale session auto-cleanup on launch
+- [x] Leave always navigates to Home
 
-### Phase 2 — Frontend (Flutter)
-- [x] 6 screens: Home, Join, Lobby, GameTable, ScoreSummary, GameOver
-- [x] Riverpod state management
-- [x] Share invite via share_plus (WhatsApp)
-- [x] Deep linking config (Android App Links)
-- [x] Fakka branding (name, icon, colors)
-- [x] Build version circle
-- [x] Cleartext HTTP fix (Android 9+)
-- [x] APK build script
+### Testing
+- [x] 40 Dart engine unit tests (game_engine_test.dart)
+- [x] 58 Dart RoomManager unit tests (room_manager_test.dart)
+- [x] 36 Python engine tests (fekka_cli/fekka.py)
+- [x] QA comprehensive suite (qa_comprehensive_tests.py) — path fixed
+- [x] E2E integration test (fakka_server_integration.dart)
+- [x] Auto-play bot for multiplayer testing (bot_test.js)
+- [x] Broken NestJS test deleted
 
-### E2E Verified
-- [x] App launches on emulator (Pixel 6, Android 14)
-- [x] Home screen: "Fakka" title, name input, Create/Join buttons
-- [x] Create Game → API call → Lobby with room code, 4 seats
+### Production Setup
+- [x] Release keystore generated (fakka-upload-key.jks)
+- [x] key.properties with signing config
+- [x] build.gradle.kts: release signing, ProGuard, R8 minification
+- [x] ProGuard rules (proguard-rules.pro)
+- [x] Network security config (cleartext off, local dev allowed)
+- [x] flutter_launcher_icons config
+- [x] versionCode=15, versionName=1.0.0
 
 ---
 
 ## 🔲 REMAINING
 
-### Gameplay (the actual game)
-- [ ] GameTable screen: play cards, show pool, show opponents
-- [ ] Server processes turns, broadcasts state updates
-- [ ] Capture animations (pool cascade, stack steal)
-- [ ] Round scoring + elimination flow
-- [ ] Game over screen with rankings
-
-### Multiplayer
-- [ ] 4-player join flow (Share Invite → Join → Lobby → Start)
-- [ ] Admin Start Game button
-- [ ] Real-time socket gameplay with 4 phones
-- [ ] Reconnection handling
+### Polish
+- [ ] Capture animations (pool cascade visual, stack steal effect)
+- [ ] Sound effects (card play, capture, round end)
+- [ ] Player elimination animation/toast
 
 ### Testing
-- [ ] Dart unit tests for game engine (port 38 Jest tests)
-- [ ] Server integration tests (spawn server, connect WS clients, simulate turns)
+- [ ] Property-based/fuzz tests for engine
+- [ ] Load test with 10+ simultaneous rooms
 
 ### Production
-- [ ] APK signed with release keystore
-- [ ] iOS build + Universal Links
-- [ ] Domain: fekka-game.com with assetlinks.json
+- [ ] Replace placeholder app icons with branded PNGs
+- [ ] Run `flutter pub run flutter_launcher_icons`
+- [ ] Play Store listing (screenshots, descriptions, privacy policy)
+- [ ] `flutter build appbundle --release` → upload to Play Console
+- [ ] iOS build (future)
 
 ---
 
-## NEW ARCHITECTURE: Embedded Server
+## ARCHITECTURE
 
 ```
-┌─────────────────────────┐
-│     Phone A (Host)      │
-│  ┌───────────────────┐  │
-│  │  Flutter App      │  │
-│  │  ┌─────────────┐  │  │
-│  │  │ UI (Client)  │  │  │
-│  │  └──────┬──────┘  │  │
-│  │         │connect  │  │
-│  │  ┌──────▼──────┐  │  │
-│  │  │ FakkaServer │  │  │  ← Embedded HTTP + WS
-│  │  │ RoomManager │  │  │    on port 3000
-│  │  │ GameEngine  │  │  │
-│  │  └─────────────┘  │  │
-│  └───────────────────┘  │
-│  Shares WhatsApp link   │
-│  with host IP           │
-└────────┬───────────────┘
-         │ 192.168.1.5:3000
-    ┌────┼────┬────┐
-    ▼    ▼    ▼    ▼
-  Phone Phone Phone Phone
-   B     C     D     (A)
+4 Phones (Flutter APK)
+   │
+   │  REST + WebSocket (wss://)
+   ▼
+https://fakka1.onrender.com (Render free tier, Node.js)
+   │
+   ├── Express REST (create, join, start, leave, status)
+   ├── WebSocket (state_sync, state_update, capture_event, round_end, game_over)
+   └── GameEngine (processTurn, processRoundEnd, setupNextRound, sanitizeForPlayer)
 ```
-
-- **No PC required** — host phone runs the server
-- **Same Wi-Fi or hotspot** — guests connect via host IP
-- **Deep link format**: `https://fekka-game.com/join/{roomId}?host={ip}:3000`
-- **Single codebase** — pure Dart, zero external server dependencies
-
----
 
 ## QUICK START
 
 ```bash
 # Build new APK
-cd D:\Fakka\fekka_app
+cd D:\Fakka1\fekka_app
 .\build_apk.ps1
 
-# Python engine (instant)
-python D:\Fakka\fekka_cli\fekka.py --auto --seed 42
+# Start bots for testing (replace ROOM and IDs)
+node D:\Fakka1\bot_test.js
 
-# Python tests
-python D:\Fakka\fekka_cli\fekka.py --test
+# Python engine tests
+python D:\Fakka1\fekka_cli\fekka.py --test
+
+# Build cloud server
+cd D:\Fakka1\fakka-cloud
+npm run build
 ```
-
-## CONNECTION GUIDE
-
-| Method | IP | Requires |
-|---|---|---|
-| Phone Hotspot | Host IP (e.g. `192.168.43.1:3000`) | Guests join host hotspot |
-| Same Wi-Fi | Host IP on Wi-Fi (e.g. `192.168.1.5:3000`) | Same network |
-| Host itself | `localhost:3000` | App auto-connects |
