@@ -23,5 +23,8 @@
   "homepage": "https://github.com/Riadh0101/Fakka1#readme",
   "dependencies": {
     "jsonc-parser": "^3.3.1"
+  },
+  "devDependencies": {
+    "ws": "^8.21.0"
   }
 }
