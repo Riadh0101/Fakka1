@@ -46,10 +46,10 @@ class PlayerPositionWidget extends StatelessWidget {
         children: [
           // Player name + eliminated badge
           Text(
-            player.name,
+            player.name.isNotEmpty ? player.name : label,
             style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
               color: player.isConnected ? Colors.white : Colors.grey,
             ),
             textAlign: TextAlign.center,

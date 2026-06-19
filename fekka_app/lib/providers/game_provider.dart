@@ -82,6 +82,7 @@ class GameNotifier extends StateNotifier<GameState> {
         serverUrl: AppConfig.socketUrl,
         roomId: roomId,
         playerId: playerId,
+        playerName: playerName,
       );
     } on ApiException catch (e) {
       state = state.copyWith(errorMessage: e.message, clearError: false);
@@ -112,6 +113,7 @@ class GameNotifier extends StateNotifier<GameState> {
         serverUrl: AppConfig.socketUrl,
         roomId: roomId,
         playerId: playerId,
+        playerName: playerName,
       );
     } on ApiException catch (e) {
       state = state.copyWith(errorMessage: e.message, clearError: false);
@@ -145,9 +147,14 @@ class GameNotifier extends StateNotifier<GameState> {
 
   /// Attempts to rejoin a previously active session on app restart.
   Future<bool> tryRejoin() async {
-    final reconnected = await _socket.tryReconnect();
-    if (!reconnected) return false;
-    state = state.copyWith(isReconnecting: true);
+    final session = await _socket.tryReconnect();
+    if (session == null) return false;
+    state = state.copyWith(
+      roomId: session['roomId'],
+      playerId: session['playerId'],
+      playerName: session['playerName'] ?? state.playerName,
+      isReconnecting: true,
+    );
     return true;
   }
 

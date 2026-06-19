@@ -55,12 +55,14 @@ class SocketService {
     required String serverUrl,
     required String roomId,
     required String playerId,
+    String? playerName,
   }) async {
     _roomId = roomId;
     _playerId = playerId;
     _wasManuallyDisconnected = false;
 
-    await _persistSession(roomId, playerId);
+    await _persistSession(
+        roomId, playerId, playerName: playerName);
 
     final wsUrl =
         '$serverUrl/game?roomId=$roomId&playerId=$playerId';
@@ -89,9 +91,11 @@ class SocketService {
   }
 
   /// Reconnects to a previously persisted session.
-  Future<bool> tryReconnect() async {
+  /// Returns the session map (roomId, playerId, playerName) on success,
+  /// or null on failure.
+  Future<Map<String, String>?> tryReconnect() async {
     final session = await _loadSession();
-    if (session == null) return false;
+    if (session == null) return null;
 
     final serverUrl = AppConfig.socketUrl;
     _roomId = session['roomId'];
@@ -110,10 +114,10 @@ class SocketService {
 
       emitRejoin();
       _startListening();
-      return true;
+      return session;
     } catch (_) {
       _connected = false;
-      return false;
+      return null;
     }
   }
 
@@ -258,11 +262,16 @@ class SocketService {
 
   static const _prefsRoomIdKey = 'fekka_room_id';
   static const _prefsPlayerIdKey = 'fekka_player_id';
+  static const _prefsPlayerNameKey = 'fekka_player_name';
 
-  Future<void> _persistSession(String roomId, String playerId) async {
+  Future<void> _persistSession(String roomId, String playerId,
+      {String? playerName}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefsRoomIdKey, roomId);
     await prefs.setString(_prefsPlayerIdKey, playerId);
+    if (playerName != null) {
+      await prefs.setString(_prefsPlayerNameKey, playerName);
+    }
   }
 
   Future<Map<String, String>?> _loadSession() async {
@@ -270,13 +279,19 @@ class SocketService {
     final roomId = prefs.getString(_prefsRoomIdKey);
     final playerId = prefs.getString(_prefsPlayerIdKey);
     if (roomId == null || playerId == null) return null;
-    return {'roomId': roomId, 'playerId': playerId};
+    final playerName = prefs.getString(_prefsPlayerNameKey);
+    return {
+      'roomId': roomId,
+      'playerId': playerId,
+      if (playerName != null) 'playerName': playerName,
+    };
   }
 
   Future<void> _clearSession() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_prefsRoomIdKey);
     await prefs.remove(_prefsPlayerIdKey);
+    await prefs.remove(_prefsPlayerNameKey);
   }
 
   /// Clean up all controllers and timers.

@@ -42,6 +42,21 @@ class _GameTableScreenState extends ConsumerState<GameTableScreen> {
       }
     });
 
+    // Listen for capture events — show a brief SnackBar
+    ref.listen<GameState>(gameProvider, (prev, next) {
+      if (next.capturedCards != null && next.capturedCards!.isNotEmpty &&
+          prev?.capturedCards == null) {
+        final who = next.capturingPlayerId == next.playerId ? 'أنت' : 'اللاعب';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$who التقط ${next.capturedCards!.length} ورقة'),
+            duration: const Duration(seconds: 2),
+            backgroundColor: Colors.amber.shade800,
+          ),
+        );
+      }
+    });
+
     // Organize opponents by position relative to the player
     final opponents = _getPositionedOpponents(state);
 
@@ -119,6 +134,29 @@ class _GameTableScreenState extends ConsumerState<GameTableScreen> {
               if (state.isReconnecting || !state.isConnected)
                 _buildReconnectingOverlay(state),
 
+              // Quit button (top-right corner)
+              Positioned(
+                top: 4,
+                right: 4,
+                child: TextButton(
+                  onPressed: () {
+                    ref.read(gameProvider.notifier).leaveGame();
+                    Navigator.of(context).popUntil((r) => r.isFirst);
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white.withOpacity(0.35),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'خروج',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ),
+
               // Error snackbar listener
               if (state.errorMessage != null)
                 Positioned(
@@ -166,14 +204,14 @@ class _GameTableScreenState extends ConsumerState<GameTableScreen> {
             children: [
               if (opponents['topLeft'] != null)
                 PlayerPositionWidget(
-                  label: 'اللاعب 2',
+                  label: opponents['topLeft']!.name,
                   player: opponents['topLeft']!,
                   isActive: opponents['topLeft']!.seatIndex ==
                       state.currentPlayerSeat,
                 ),
               if (opponents['topRight'] != null)
                 PlayerPositionWidget(
-                  label: 'اللاعب 3',
+                  label: opponents['topRight']!.name,
                   player: opponents['topRight']!,
                   isActive: opponents['topRight']!.seatIndex ==
                       state.currentPlayerSeat,
@@ -198,7 +236,7 @@ class _GameTableScreenState extends ConsumerState<GameTableScreen> {
             alignment: Alignment.centerLeft,
             child: opponents['bottomLeft'] != null
                 ? PlayerPositionWidget(
-                    label: 'اللاعب 1',
+                    label: opponents['bottomLeft']!.name,
                     player: opponents['bottomLeft']!,
                     isActive:
                         opponents['bottomLeft']!.seatIndex ==
@@ -225,7 +263,7 @@ class _GameTableScreenState extends ConsumerState<GameTableScreen> {
             children: [
               if (opponents['topLeft'] != null)
                 PlayerPositionWidget(
-                  label: 'اللاعب 2',
+                  label: opponents['topLeft']!.name,
                   player: opponents['topLeft']!,
                   isActive:
                       opponents['topLeft']!.seatIndex == state.currentPlayerSeat,
@@ -233,7 +271,7 @@ class _GameTableScreenState extends ConsumerState<GameTableScreen> {
               const SizedBox(height: 16),
               if (opponents['bottomLeft'] != null)
                 PlayerPositionWidget(
-                  label: 'Player 1',
+                  label: opponents['bottomLeft']!.name,
                   player: opponents['bottomLeft']!,
                   isActive: opponents['bottomLeft']!.seatIndex ==
                       state.currentPlayerSeat,
@@ -255,7 +293,7 @@ class _GameTableScreenState extends ConsumerState<GameTableScreen> {
           child: Center(
             child: opponents['topRight'] != null
                 ? PlayerPositionWidget(
-                    label: 'اللاعب 3',
+                    label: opponents['topRight']!.name,
                     player: opponents['topRight']!,
                     isActive: opponents['topRight']!.seatIndex ==
                         state.currentPlayerSeat,
