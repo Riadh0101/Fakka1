@@ -17,7 +17,7 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() in ('cp1252', 'cp850', 'c
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 # Ensure the fekka_cli directory is importable
-sys.path.insert(0, "D:\\Apps\\Fakka\\fekka_cli")
+sys.path.insert(0, "D:\\Apps\\Fakka1\\fekka_cli")
 
 from fekka import (
     Card, Deck, PlayerStack, MiddlePool, Player, GameManager,
@@ -475,7 +475,7 @@ class CodeQualityAudit:
     def run():
         print(f"\n{BOLD}-- Code Quality Audit --{RESET}")
         issues = 0
-        filepath = "D:\\Apps\\Fakka\\fekka_cli\\fekka.py"
+        filepath = "D:\\Apps\\Fakka1\\fekka_cli\\fekka.py"
 
         # 3a. Check for bare except
         with open(filepath, 'r', encoding='utf-8') as f:
