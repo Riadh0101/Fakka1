@@ -149,8 +149,23 @@ class GameNotifier extends StateNotifier<GameState> {
   Future<bool> tryRejoin() async {
     final session = await _socket.tryReconnect();
     if (session == null) return false;
+
+    // Validate room still exists before navigating
+    final roomId = session['roomId']!;
+    try {
+      final status = await _api.getRoomStatus(roomId);
+      if (status['status'] == 'finished') {
+        _socket.clearSession();
+        return false;
+      }
+    } catch (_) {
+      // Room doesn't exist or server unreachable — clear stale session
+      _socket.clearSession();
+      return false;
+    }
+
     state = state.copyWith(
-      roomId: session['roomId'],
+      roomId: roomId,
       playerId: session['playerId'],
       playerName: session['playerName'] ?? state.playerName,
       isReconnecting: true,

@@ -294,6 +294,9 @@ class SocketService {
     await prefs.remove(_prefsPlayerNameKey);
   }
 
+  /// Public wrapper to clear persisted session (e.g. after stale room detection).
+  Future<void> clearSession() => _clearSession();
+
   /// Clean up all controllers and timers.
   void dispose() {
     _reconnectTimer?.cancel();

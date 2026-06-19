@@ -87,6 +87,16 @@ class ApiService {
         statusCode: response.statusCode);
   }
 
+  /// GET /games/:roomId/status
+  Future<Map<String, dynamic>> getRoomStatus(String roomId) async {
+    final uri = Uri.parse('$_baseUrl/games/$roomId/status');
+    final response = await _client.get(uri).timeout(const Duration(seconds: 5));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    throw ApiException('Room not found', statusCode: response.statusCode);
+  }
+
   String _extractError(http.Response response) {
     try {
       final body = jsonDecode(response.body);
